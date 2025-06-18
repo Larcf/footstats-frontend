@@ -19,24 +19,34 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Ignorar completamente requisições da API
+  if (event.request.url.includes('api.footstats.com')) {
+    return;
+  }
+
   if (event.request.method !== 'GET') return;
   
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        return fetch(event.request)
-          .then(response => {
-            // Atualiza cache
-            cache.put(event.request, response.clone());
-            return response;
-          })
-          .catch(() => {
-            if (cachedResponse) return cachedResponse;
-            if (event.request.mode === 'navigate') {
-              return caches.match(OFFLINE_URL);
-            }
-          });
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(event.request).then(cachedResponse => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          // Atualiza cache para respostas válidas
+          if (networkResponse.status === 200) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(error => {
+          // Fallback estratégico
+          if (cachedResponse) return cachedResponse;
+          if (event.request.mode === 'navigate') {
+            return cache.match(OFFLINE_URL);
+          }
+          return Response.error();
+        });
+        
+        return cachedResponse || fetchPromise;
+      });
+    })
   );
 });
 
