@@ -1378,71 +1378,65 @@ Brasil Virtual,1,1"></textarea>
 
         // ==================== [API COMMUNICATION - PRODUÇÃO] ====================
         async function fetchDataFromAPI() {
-            try {
-                updateApiStatus(true);
-                dataStore.lastUpdateTime = new Date();
-                
-                // Chamada real para API de produção
-                const response = await axios.get(
-                    API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LIVE_MATCHES,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${API_CONFIG.API_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        params: {
-                            sport: 'virtual-soccer',
-                            status: 'live'
-                        },
-                        timeout: API_CONFIG.TIMEOUT
-                    }
-                );
-                
-                // Transformação dos dados conforme necessário
-                const liveData = response.data.map(match => ({
-                    id: match.id,
-                    league: match.league.name,
-                    home_team: match.teams.home,
-                    away_team: match.teams.away,
-                    home_goals: match.score.home,
-                    away_goals: match.score.away,
-                    minute: match.time.elapsed,
-                    odds: {
-                        home: match.odds.home_win,
-                        draw: match.odds.draw,
-                        away: match.odds.away_win,
-                        over_25: match.odds.over_25
-                    }
-                }));
-
-                processLiveMatches(liveData);
-                checkForOpportunities(liveData);
-                
-                showNotification('Dados atualizados com sucesso!');
-            } catch (error) {
-                // Tratamento detalhado de erros
-                if (error.response) {
-                    console.error('Erro na resposta:', error.response.status);
-                    showNotification(`Erro na API: ${error.response.status}`, false);
-                } else if (error.request) {
-                    console.error('Sem resposta do servidor');
-                    showNotification('Servidor não respondeu', false);
-                    
-                    // Fallback para dados locais
-                    if (dataStore.matches.length > 0) {
-                        processLiveMatches(dataStore.matches.slice(0, 5));
-                        showNotification('Usando dados locais', false);
-                    }
-                } else {
-                    console.error('Erro na requisição:', error.message);
-                    showNotification('Erro de configuração', false);
-                }
-                
-                updateApiStatus(false);
-            } finally {
-                updateStatusElements();
+    try {
+        updateApiStatus(true);
+        dataStore.lastUpdateTime = new Date();
+        
+        const response = await axios.get(
+            API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LIVE_MATCHES,
+            {
+                headers: {
+                    'Authorization': `Bearer ${API_CONFIG.API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                params: {
+                    sport: 'virtual-soccer',
+                    status: 'live'
+                },
+                timeout: API_CONFIG.TIMEOUT
             }
+        );
+
+        // Verificação crítica de status da resposta
+        if (response.status >= 200 && response.status < 300) {
+            const liveData = response.data.map(match => ({
+                id: match.id,
+                league: match.league.name,
+                home_team: match.teams.home,
+                away_team: match.teams.away,
+                home_goals: match.score.home,
+                away_goals: match.score.away,
+                minute: match.time.elapsed,
+                odds: {
+                    home: match.odds.home_win,
+                    draw: match.odds.draw,
+                    away: match.odds.away_win,
+                    over_25: match.odds.over_25
+                }
+            }));
+
+            processLiveMatches(liveData);
+            checkForOpportunities(liveData);
+            showNotification('Dados atualizados com sucesso!');
+        } else {
+            // Trata respostas não bem-sucedidas
+            showNotification(`Erro na API: Status ${response.status}`, false);
+            updateApiStatus(false);
         }
+    } catch (error) {
+        console.error('Erro na API:', error);
+        showNotification('Falha ao conectar com a API', false);
+        updateApiStatus(false);
+        
+        // Fallback para dados locais
+        if (dataStore.matches.length > 0) {
+            showNotification('Usando dados locais', false);
+            processLiveMatches(dataStore.matches.slice(0, 5));
+        }
+    } finally {
+        updateStatusElements();
+    }
+}
 
         // ==================== [SERVICE WORKER] ====================
         function registerServiceWorker() {
