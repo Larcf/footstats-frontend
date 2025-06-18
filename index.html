@@ -1246,29 +1246,14 @@ Brasil Virtual,1,1"></textarea>
         }
 
         // Obter dados de fontes gratuitas
-        async function fetchDataFromFreeSources() {
-            try {
-                updateApiStatus(true);
-                lastUpdateTime = new Date();
-                
-                // 1. GitHub Pages - Dados estáticos
-                const githubResponse = await axios.get(GITHUB_DATA_URL);
-                const githubData = githubResponse.data.matches || [];
-                
-                // 2. Scraping de sites públicos (se necessário)
-                const scrapedData = githubData.length > 0 ? [] : await scrapePublicBettingSites();
-                
-                // Combinar todas as fontes
-                const allMatches = [...githubData, ...scrapedData];
-                
-                // Processar e exibir dados
-                processLiveMatches(allMatches);
-                
-                // Verificar oportunidades
-                checkForOpportunities(allMatches);
-                
-                showNotification('Dados atualizados com sucesso!');
-            } catch (error) {
+        async function fetchDataFromAPI() {
+  try {
+    const response = await axios.get('/api/matches');
+    processLiveMatches(response.data);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+} catch (error) {
                 console.error('Erro ao buscar dados do GitHub:', error);
                 // Tentar scraping direto como fallback
                 try {
@@ -2255,7 +2240,101 @@ function renderScrapedResults(data, container) {
                     resultsDiv.innerHTML = '<p style="text-align: center; padding: 30px; color: #f72585;">Nenhuma oportunidade encontrada. Tente outros filtros.</p>';
                     return;
                 }
-                
+                // stats.worker.js
+                self.onmessage = function(e) {
+                     const matches = e.data;
+  
+                  // Cálculos pesados
+                      const stats = calculateStatistics(matches);
+  
+                self.postMessage(stats);
+};
+
+                // No main.js
+                    const statsWorker = new Worker('stats.worker.js');
+
+                statsWorker.postMessage(matches);
+
+                statsWorker.onmessage = function(e) {
+                  const stats = e.data;
+                      renderStatsCards(stats);
+                        renderChart(stats);
+};
+                // api.js
+                export async function getMatches() {
+                      const response = await axios.get('/api/matches');
+                      return response.data;
+}
+
+                // stats.js
+                export function calculateStatistics(matches) {
+                // Cálculos complexos
+}
+
+                // chartManager.js
+                export function renderChart(stats) {
+                // Configuração do Chart.js
+}
+                // api.js
+                export async function getMatches() {
+                  const response = await axios.get('/api/matches');
+                  return response.data;
+}
+
+                // stats.js
+                export function calculateStatistics(matches) {
+                // Cálculos complexos
+}
+
+                // chartManager.js
+                export function renderChart(stats) {
+                // Configuração do Chart.js
+}
+                // Uso de classes para organizar o estado
+                class DataStore {
+                  constructor() {
+                    this.matches = [];
+                    this.stats = {};
+  }
+  
+                  updateMatches(newMatches) {
+                    this.matches = newMatches;
+                    this.calculateStats();
+                    this.notifyChanges();
+  }
+  
+              calculateStats() {
+            // Cálculos estatísticos
+  }
+  
+              notifyChanges() {
+            document.dispatchEvent(new CustomEvent('data-update'));
+  }
+}
+
+            const store = new DataStore();
+                // sw.js
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('footstats-v1').then((cache) => {
+      return cache.addAll([
+        '/',
+        '/index.html',
+        '/styles/main.css',
+        '/scripts/app.js',
+        '/scripts/chartManager.js'
+      ]);
+    })
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
+});
                 let html = `<div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px;">
                     <span>${opportunities.length} oportunidades encontradas</span>
                     <span>Ordenado por: <strong>Maior Valor</strong></span>
