@@ -1246,14 +1246,29 @@ Brasil Virtual,1,1"></textarea>
         }
 
         // Obter dados de fontes gratuitas
-        async function fetchDataFromAPI() {
-  try {
-    const response = await axios.get('/api/matches');
-    processLiveMatches(response.data);
-  } catch (error) {
-    console.error('Error fetching data:', error);
-  }
-} catch (error) {
+        async function fetchDataFromFreeSources() {
+            try {
+                updateApiStatus(true);
+                lastUpdateTime = new Date();
+                
+                // 1. GitHub Pages - Dados estáticos
+                const githubResponse = await axios.get(GITHUB_DATA_URL);
+                const githubData = githubResponse.data.matches || [];
+                
+                // 2. Scraping de sites públicos (se necessário)
+                const scrapedData = githubData.length > 0 ? [] : await scrapePublicBettingSites();
+                
+                // Combinar todas as fontes
+                const allMatches = [...githubData, ...scrapedData];
+                
+                // Processar e exibir dados
+                processLiveMatches(allMatches);
+                
+                // Verificar oportunidades
+                checkForOpportunities(allMatches);
+                
+                showNotification('Dados atualizados com sucesso!');
+            } catch (error) {
                 console.error('Erro ao buscar dados do GitHub:', error);
                 // Tentar scraping direto como fallback
                 try {
@@ -2083,122 +2098,61 @@ Brasil Virtual,1,1"></textarea>
         }
 
         // Scraping via frontend
-       async function scrapeData() {
-    const scrapeUrl = document.getElementById('scrapeUrl').value;
-    const resultsDiv = document.getElementById('scrapeResults');
-    
-    // Mostrar loading
-    resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Coletando dados. Isso pode levar até 30 segundos...</p>';
-    
-    try {
-        // Usar proxy para evitar CORS e bloqueios
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const targetUrl = scrapeUrl || 'https://www.oddsportal.com/virtual-soccer/results/';
-        
-        const response = await axios.get(proxyUrl + targetUrl, {
-            timeout: 30000, // 30 segundos
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        
-        if (response.status !== 200) {
-            throw new Error(`Request failed with status code ${response.status}`);
-        }
-        
-        // Criar parser DOM
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(response.data, 'text/html');
-        
-        // Processar resultados
-        const scrapedData = processScrapedData(doc);
-        renderScrapedResults(scrapedData, resultsDiv);
-        
-    } catch (error) {
-        console.error('Erro no scraping:', error);
-        resultsDiv.innerHTML = `<p style="text-align: center; color: #f72585; padding: 20px;">
-            <i class="fas fa-exclamation-triangle"></i> Erro: ${error.message || 'Falha na coleta'}
-        </p>`;
-    }
-}
-
-function processScrapedData(doc) {
-    const scrapedData = [];
-    const matchRows = doc.querySelectorAll('.table-main tbody tr');
-    
-    matchRows.forEach(row => {
-        try {
-            if (row.classList.contains('center') || row.classList.contains('dark')) {
+        async function scrapeData() {
+            const url = document.getElementById('scrapeUrl').value;
+            const resultsDiv = document.getElementById('scrapeResults');
+            
+            if (!url) {
+                showNotification('Insira uma URL válida', false);
                 return;
             }
             
-            const leagueElem = row.querySelector('td:nth-child(1) a');
-            const teamsElem = row.querySelector('td:nth-child(2) a');
-            const scoreElem = row.querySelector('td:nth-child(3)');
-            
-            if (!leagueElem || !teamsElem || !scoreElem) return;
-            
-            const league = leagueElem.textContent.trim();
-            const teams = teamsElem.textContent.trim();
-            const score = scoreElem.textContent.trim();
-            
-            if (!teams || !score || !league) return;
-            
-            const [home, away] = teams.split(' - ').map(t => t.trim());
-            const [homeGoals, awayGoals] = score.split(':').map(s => parseInt(s.trim()));
-            
-            if (isNaN(homeGoals) || isNaN(awayGoals)) return;
-            
-            scrapedData.push({
-                league,
-                home_team: home,
-                away_team: away,
-                home_goals: homeGoals,
-                away_goals: awayGoals
-            });
-        } catch (e) {
-            console.error('Erro ao processar linha:', e);
+            try {
+                resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Coletando dados. Isso pode levar alguns segundos...</p>';
+                
+                const scrapedData = await scrapePublicBettingSites();
+                let html = '';
+                
+                if (scrapedData.length > 0) {
+                    html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
+                        <i class="fas fa-check-circle"></i> <strong>${scrapedData.length} partidas encontradas!</strong>
+                    </p>
+                    <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
+                    
+                    scrapedData.slice(0, 10).forEach(match => {
+                        html += `
+                        <div class="match-item">
+                            <div class="match-info">
+                                <div class="match-league">${match.league}</div>
+                                <div class="match-teams">
+                                    <span>${match.home_team}</span>
+                                    <span class="match-score">${match.home_goals}-${match.away_goals}</span>
+                                    <span>${match.away_team}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    
+                    if (scrapedData.length > 10) {
+                        html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
+                            ... +${scrapedData.length - 10} partidas
+                        </p>`;
+                    }
+                    
+                    html += `</div>`;
+                } else {
+                    html = `<p style="text-align: center; color: #f72585; padding: 20px;">
+                        <i class="fas fa-exclamation-triangle"></i> Nenhuma partida encontrada. Tente outra URL.
+                    </p>`;
+                }
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="text-align: center; color: #f72585; padding: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i> Erro: ${error.message || 'Falha na coleta'}
+                </p>`;
+            }
         }
-    });
-    
-    return scrapedData;
-}
-
-function renderScrapedResults(data, container) {
-    if (data.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #f72585; padding: 20px;">Nenhuma partida encontrada</p>';
-        return;
-    }
-    
-    let html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
-        <i class="fas fa-check-circle"></i> <strong>${data.length} partidas encontradas!</strong>
-    </p>
-    <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
-    
-    data.slice(0, 10).forEach(match => {
-        html += `
-        <div class="match-item">
-            <div class="match-info">
-                <div class="match-league">${match.league}</div>
-                <div class="match-teams">
-                    <span>${match.home_team}</span>
-                    <span class="match-score">${match.home_goals}-${match.away_goals}</span>
-                    <span>${match.away_team}</span>
-                </div>
-            </div>
-        </div>`;
-    });
-    
-    if (data.length > 10) {
-        html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
-            ... +${data.length - 10} partidas
-        </p>`;
-    }
-    
-    html += `</div>`;
-    container.innerHTML = html;
-}
 
         // Encontrar oportunidades
         function findOpportunities(marketType) {
@@ -2240,101 +2194,7 @@ function renderScrapedResults(data, container) {
                     resultsDiv.innerHTML = '<p style="text-align: center; padding: 30px; color: #f72585;">Nenhuma oportunidade encontrada. Tente outros filtros.</p>';
                     return;
                 }
-                // stats.worker.js
-                self.onmessage = function(e) {
-                     const matches = e.data;
-  
-                  // Cálculos pesados
-                      const stats = calculateStatistics(matches);
-  
-                self.postMessage(stats);
-};
-
-                // No main.js
-                    const statsWorker = new Worker('stats.worker.js');
-
-                statsWorker.postMessage(matches);
-
-                statsWorker.onmessage = function(e) {
-                  const stats = e.data;
-                      renderStatsCards(stats);
-                        renderChart(stats);
-};
-                // api.js
-                export async function getMatches() {
-                      const response = await axios.get('/api/matches');
-                      return response.data;
-}
-
-                // stats.js
-                export function calculateStatistics(matches) {
-                // Cálculos complexos
-}
-
-                // chartManager.js
-                export function renderChart(stats) {
-                // Configuração do Chart.js
-}
-                // api.js
-                export async function getMatches() {
-                  const response = await axios.get('/api/matches');
-                  return response.data;
-}
-
-                // stats.js
-                export function calculateStatistics(matches) {
-                // Cálculos complexos
-}
-
-                // chartManager.js
-                export function renderChart(stats) {
-                // Configuração do Chart.js
-}
-                // Uso de classes para organizar o estado
-                class DataStore {
-                  constructor() {
-                    this.matches = [];
-                    this.stats = {};
-  }
-  
-                  updateMatches(newMatches) {
-                    this.matches = newMatches;
-                    this.calculateStats();
-                    this.notifyChanges();
-  }
-  
-              calculateStats() {
-            // Cálculos estatísticos
-  }
-  
-              notifyChanges() {
-            document.dispatchEvent(new CustomEvent('data-update'));
-  }
-}
-
-            const store = new DataStore();
-                // sw.js
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open('footstats-v1').then((cache) => {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/styles/main.css',
-        '/scripts/app.js',
-        '/scripts/chartManager.js'
-      ]);
-    })
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
-});
+                
                 let html = `<div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px;">
                     <span>${opportunities.length} oportunidades encontradas</span>
                     <span>Ordenado por: <strong>Maior Valor</strong></span>
