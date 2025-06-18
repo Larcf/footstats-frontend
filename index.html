@@ -1362,63 +1362,38 @@ Brasil Virtual,1,1"></textarea>
         }
 
         // ==================== [API COMMUNICATION] ====================
-        async function fetchDataFromAPI() {
-            try {
-                updateApiStatus(true);
-                dataStore.lastUpdateTime = new Date();
-                
-                // Simulação de API (em produção, substitua pela URL real)
-                const liveData = [
-                    {
-                        id: "match_1",
-                        league: "Virtual Premier",
-                        home_team: "Arsenal",
-                        away_team: "Chelsea",
-                        home_goals: 2,
-                        away_goals: 1,
-                        minute: 45,
-                        status: "Primeiro Tempo",
-                        odds: {
-                            home: 1.85,
-                            draw: 3.40,
-                            away: 4.20,
-                            over_25: 1.95
-                        }
-                    },
-                    {
-                        id: "match_2",
-                        league: "Virtual La Liga",
-                        home_team: "Barcelona",
-                        away_team: "Real Madrid",
-                        home_goals: 1,
-                        away_goals: 0,
-                        minute: 30,
-                        status: "Primeiro Tempo",
-                        odds: {
-                            home: 2.10,
-                            draw: 3.30,
-                            away: 3.50,
-                            over_25: 2.05
-                        }
-                    },
-                    {
-                        id: "match_3",
-                        league: "Brasil Virtual",
-                        home_team: "Flamengo",
-                        away_team: "Palmeiras",
-                        home_goals: 0,
-                        away_goals: 0,
-                        minute: 75,
-                        status: "Segundo Tempo",
-                        odds: {
-                            home: 1.95,
-                            draw: 3.25,
-                            away: 4.00,
-                            over_25: 1.85
-                        }
-                    }
-                ];
-                
+       async function fetchDataFromAPI() {
+  try {
+    updateApiStatus(true);
+    dataStore.lastUpdateTime = new Date();
+    
+    // 👇🏼 SUBSTITUA POR SUA API REAL
+    const response = await axios.get('https://sua-api.com/v1/matches', {
+      headers: {
+        'Authorization': 'Bearer seu-token-de-acesso',
+        'Content-Type': 'application/json'
+      },
+      params: {
+        sport: 'virtual-soccer',
+        status: 'live'
+      }
+    });
+    
+    // Ajuste conforme a estrutura da sua API
+    const liveData = response.data.matches; 
+
+    processLiveMatches(liveData);
+    checkForOpportunities(liveData);
+    showNotification('Dados atualizados com sucesso!');
+    
+  } catch (error) {
+    console.error('Erro na API:', error);
+    showNotification('Falha ao conectar com a API', false);
+    updateApiStatus(false);
+  } finally {
+    updateStatusElements();
+  }
+}                
                 // Processar e exibir dados
                 processLiveMatches(liveData);
                 
