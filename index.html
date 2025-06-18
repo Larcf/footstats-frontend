@@ -826,6 +826,33 @@
         .status-offline .status-dot {
             background: #f72585;
         }
+        
+        /* Button Loading State */
+        .btn.loading {
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .btn.loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+            border: 4px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: button-loading-spinner 1s ease infinite;
+        }
+        
+        @keyframes button-loading-spinner {
+            from { transform: rotate(0turn); }
+            to { transform: rotate(1turn); }
+        }
     </style>
 </head>
 <body>
@@ -878,7 +905,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Fonte de Dados</div>
-                    <div class="stat-value" style="font-size:1.5rem">GitHub + Scraping</div>
+                    <div class="stat-value" style="font-size:1.5rem">API + Cache</div>
                 </div>
             </div>
         </div>
@@ -910,7 +937,7 @@
                 <div class="tabs">
                     <div class="tab active" data-tab="import">Importar Dados</div>
                     <div class="tab" data-tab="manual">Inserir Manualmente</div>
-                    <div class="tab" data-tab="scrape">Coleta Automática</div>
+                    <div class="tab" data-tab="api">API Integration</div>
                 </div>
                 
                 <div class="tab-content active" id="import-tab">
@@ -919,7 +946,7 @@
 Virtual Premier,2,1
 Virtual La Liga,3,0
 Brasil Virtual,1,1"></textarea>
-                    <button class="btn" onclick="parseCSV()">
+                    <button class="btn" id="importCsvBtn" onclick="parseCSV()">
                         <i class="fas fa-file-import"></i> Importar CSV
                     </button>
                 </div>
@@ -939,24 +966,24 @@ Brasil Virtual,1,1"></textarea>
                             <input type="number" id="awayInput" placeholder="0">
                         </div>
                     </div>
-                    <button class="btn" onclick="addManualData()">
+                    <button class="btn" id="addMatchBtn" onclick="addManualData()">
                         <i class="fas fa-plus"></i> Adicionar Partida
                     </button>
                 </div>
                 
-                <div class="tab-content" id="scrape-tab">
+                <div class="tab-content" id="api-tab">
                     <div class="scrape-card">
                         <div style="margin-bottom: 20px;">
-                            <label>URL do Site de Apostas:</label>
-                            <input type="text" id="scrapeUrl" placeholder="https://exemplo.com/partidas" value="https://www.oddsportal.com/virtual-soccer/results/">
+                            <label>Endpoint da API:</label>
+                            <input type="text" id="apiEndpoint" placeholder="https://api.example.com/matches" value="https://api.footstats.com/matches">
                         </div>
                         
-                        <button class="btn btn-success" onclick="scrapeData()" style="margin-top: 15px;">
-                            <i class="fas fa-bolt"></i> Coletar Dados Automaticamente
+                        <button class="btn btn-success" id="fetchApiBtn" onclick="fetchApiData()" style="margin-top: 15px;">
+                            <i class="fas fa-cloud-download-alt"></i> Buscar Dados da API
                         </button>
                         
-                        <div id="scrapeResults" class="scrape-results">
-                            <p>Os resultados da coleta aparecerão aqui...</p>
+                        <div id="apiResults" class="scrape-results">
+                            <p>Os resultados da API aparecerão aqui...</p>
                         </div>
                     </div>
                 </div>
@@ -1183,30 +1210,251 @@ Brasil Virtual,1,1"></textarea>
     </div>
 
     <script>
-        // Banco de dados em memória com localStorage
-        let matches = JSON.parse(localStorage.getItem('futebolVirtualData')) || [];
-        let leagueStats = {};
+        // ==================== [NOVA ESTRUTURA DE DADOS] ====================
+        class DataStore {
+            constructor() {
+                this.matches = JSON.parse(localStorage.getItem('futebolVirtualData')) || [];
+                this.leagueStats = {};
+                this.todayMatchesCount = 0;
+                this.liveOpportunitiesCount = 0;
+                this.lastUpdateTime = new Date();
+            }
+            
+            saveData() {
+                localStorage.setItem('futebolVirtualData', JSON.stringify(this.matches));
+                this.calculateStatistics();
+            }
+            
+            addMatch(match) {
+                this.matches.push(match);
+                this.saveData();
+            }
+            
+            clearData() {
+                this.matches = [];
+                this.saveData();
+            }
+            
+            calculateStatistics() {
+                this.leagueStats = {};
+                
+                this.matches.forEach(match => {
+                    const league = match.league;
+                    
+                    if (!this.leagueStats[league]) {
+                        this.leagueStats[league] = {
+                            totalMatches: 0,
+                            totalGoals: 0,
+                            homeWins: 0,
+                            awayWins: 0,
+                            draws: 0,
+                            over25: 0,
+                            under25: 0
+                        };
+                    }
+                    
+                    const stats = this.leagueStats[league];
+                    stats.totalMatches++;
+                    stats.totalGoals += match.home_goals + match.away_goals;
+                    
+                    if (match.home_goals > match.away_goals) stats.homeWins++;
+                    else if (match.home_goals < match.away_goals) stats.awayWins++;
+                    else stats.draws++;
+                    
+                    const totalGoals = match.home_goals + match.away_goals;
+                    if (totalGoals > 2.5) stats.over25++;
+                    else stats.under25++;
+                });
+                
+                // Calcular probabilidades
+                for (const league in this.leagueStats) {
+                    const s = this.leagueStats[league];
+                    s.avgGoals = s.totalGoals / s.totalMatches;
+                    s.homeWinProb = s.homeWins / s.totalMatches;
+                    s.awayWinProb = s.awayWins / s.totalMatches;
+                    s.drawProb = s.draws / s.totalMatches;
+                    s.over25Prob = s.over25 / s.totalMatches;
+                    s.under25Prob = s.under25 / s.totalMatches;
+                }
+                
+                // Disparar evento de atualização
+                document.dispatchEvent(new CustomEvent('stats-updated'));
+            }
+        }
+
+        // ==================== [INSTÂNCIA GLOBAL] ====================
+        const dataStore = new DataStore();
         let chartInstance = null;
-        let todayMatchesCount = 0;
-        let liveOpportunitiesCount = 0;
-        let lastUpdateTime = new Date();
+        
+        // ==================== [FUNÇÕES DE INTERFACE] ====================
+        function init() {
+            setupTabs();
+            updateLeagueFilter();
+            renderStatsCards();
+            renderStatsTable();
+            updateHeaderStats();
+            updateStatusElements();
+            
+            // Conectar a dados em tempo real
+            connectToFreeDataSources();
+            
+            // Registrar event listeners
+            document.addEventListener('stats-updated', () => {
+                renderStatsCards();
+                renderStatsTable();
+                renderChart();
+                updateHeaderStats();
+            });
+        }
 
-        // Elementos DOM
-        const notification = document.getElementById('notification');
-        const liveMatchesContainer = document.getElementById('liveMatchesContainer');
-        const alertsContainer = document.getElementById('alertsContainer');
-        const apiStatusElement = document.getElementById('apiStatus');
-        const lastUpdateElement = document.getElementById('lastUpdate');
-        const todayMatchesElement = document.getElementById('todayMatches');
-        const liveOpportunitiesElement = document.getElementById('liveOpportunities');
+        // ==================== [WEB WORKER] ====================
+        function createStatsWorker() {
+            const workerCode = `
+                self.onmessage = function(e) {
+                    const matches = e.data;
+                    const stats = {};
+                    
+                    matches.forEach(match => {
+                        const league = match.league;
+                        
+                        if (!stats[league]) {
+                            stats[league] = {
+                                totalMatches: 0,
+                                totalGoals: 0,
+                                homeWins: 0,
+                                awayWins: 0,
+                                draws: 0,
+                                over25: 0,
+                                under25: 0
+                            };
+                        }
+                        
+                        const stat = stats[league];
+                        stat.totalMatches++;
+                        stat.totalGoals += match.home_goals + match.away_goals;
+                        
+                        if (match.home_goals > match.away_goals) stat.homeWins++;
+                        else if (match.home_goals < match.away_goals) stat.awayWins++;
+                        else stat.draws++;
+                        
+                        const totalGoals = match.home_goals + match.away_goals;
+                        if (totalGoals > 2.5) stat.over25++;
+                        else stat.under25++;
+                    });
+                    
+                    // Calcular probabilidades
+                    for (const league in stats) {
+                        const s = stats[league];
+                        s.avgGoals = s.totalGoals / s.totalMatches;
+                        s.homeWinProb = s.homeWins / s.totalMatches;
+                        s.awayWinProb = s.awayWins / s.totalMatches;
+                        s.drawProb = s.draws / s.totalMatches;
+                        s.over25Prob = s.over25 / s.totalMatches;
+                        s.under25Prob = s.under25 / s.totalMatches;
+                    }
+                    
+                    postMessage(stats);
+                };
+            `;
+            
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            return new Worker(URL.createObjectURL(blob));
+        }
 
-        // Substitua pelo seu usuário do GitHub
-        const GITHUB_USER = 'Larcf';
-        const GITHUB_DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/footstats-data/main/live-matches.json`;
+        // ==================== [API COMMUNICATION] ====================
+        async function fetchDataFromAPI() {
+            try {
+                updateApiStatus(true);
+                dataStore.lastUpdateTime = new Date();
+                
+                // Simulação de API (em produção, substitua pela URL real)
+                const liveData = [
+                    {
+                        id: "match_1",
+                        league: "Virtual Premier",
+                        home_team: "Arsenal",
+                        away_team: "Chelsea",
+                        home_goals: 2,
+                        away_goals: 1,
+                        minute: 45,
+                        status: "Primeiro Tempo",
+                        odds: {
+                            home: 1.85,
+                            draw: 3.40,
+                            away: 4.20,
+                            over_25: 1.95
+                        }
+                    },
+                    {
+                        id: "match_2",
+                        league: "Virtual La Liga",
+                        home_team: "Barcelona",
+                        away_team: "Real Madrid",
+                        home_goals: 1,
+                        away_goals: 0,
+                        minute: 30,
+                        status: "Primeiro Tempo",
+                        odds: {
+                            home: 2.10,
+                            draw: 3.30,
+                            away: 3.50,
+                            over_25: 2.05
+                        }
+                    },
+                    {
+                        id: "match_3",
+                        league: "Brasil Virtual",
+                        home_team: "Flamengo",
+                        away_team: "Palmeiras",
+                        home_goals: 0,
+                        away_goals: 0,
+                        minute: 75,
+                        status: "Segundo Tempo",
+                        odds: {
+                            home: 1.95,
+                            draw: 3.25,
+                            away: 4.00,
+                            over_25: 1.85
+                        }
+                    }
+                ];
+                
+                // Processar e exibir dados
+                processLiveMatches(liveData);
+                
+                // Verificar oportunidades
+                checkForOpportunities(liveData);
+                
+                showNotification('Dados atualizados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao buscar dados da API:', error);
+                showNotification('Falha ao atualizar dados. Tentando novamente...', false);
+                updateApiStatus(false);
+            } finally {
+                updateStatusElements();
+            }
+        }
+
+        // ==================== [SERVICE WORKER] ====================
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Falha ao registrar Service Worker:', error);
+                    });
+            }
+        }
+
+        // ==================== [FUNÇÕES MODULARIZADAS] ====================
 
         // Função para mostrar notificação
         function showNotification(message, isSuccess = true) {
             const icon = isSuccess ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-exclamation-triangle"></i>';
+            const notification = document.getElementById('notification');
+            
             notification.innerHTML = `${icon} <span>${message}</span>`;
             notification.style.background = isSuccess 
                 ? 'linear-gradient(135deg, #4cc9f0, #4895ef)' 
@@ -1219,299 +1467,7 @@ Brasil Virtual,1,1"></textarea>
             }, 3500);
         }
 
-        // Inicialização
-        function init() {
-            updateLeagueFilter();
-            calculateStatistics();
-            renderStatsTable();
-            renderChart();
-            renderStatsCards();
-            setupTabs();
-            updateHeaderStats();
-            updateStatusElements();
-            
-            // Conectar a dados em tempo real usando recursos gratuitos
-            connectToFreeDataSources();
-        }
-
-        // Conectar a fontes gratuitas de dados
-        function connectToFreeDataSources() {
-            // Atualizar a cada 2 minutos (evitando bloqueio)
-            setInterval(() => {
-                fetchDataFromFreeSources();
-            }, 120000);
-            
-            // Primeira carga imediata
-            fetchDataFromFreeSources();
-        }
-
-        // Obter dados de fontes gratuitas
-        async function fetchDataFromFreeSources() {
-            try {
-                updateApiStatus(true);
-                lastUpdateTime = new Date();
-                
-                // 1. GitHub Pages - Dados estáticos
-                const githubResponse = await axios.get(GITHUB_DATA_URL);
-                const githubData = githubResponse.data.matches || [];
-                
-                // 2. Scraping de sites públicos (se necessário)
-                const scrapedData = githubData.length > 0 ? [] : await scrapePublicBettingSites();
-                
-                // Combinar todas as fontes
-                const allMatches = [...githubData, ...scrapedData];
-                
-                // Processar e exibir dados
-                processLiveMatches(allMatches);
-                
-                // Verificar oportunidades
-                checkForOpportunities(allMatches);
-                
-                showNotification('Dados atualizados com sucesso!');
-            } catch (error) {
-                console.error('Erro ao buscar dados do GitHub:', error);
-                // Tentar scraping direto como fallback
-                try {
-                    const scrapedData = await scrapePublicBettingSites();
-                    processLiveMatches(scrapedData);
-                    checkForOpportunities(scrapedData);
-                    showNotification('Dados coletados via scraping!');
-                } catch (scrapeError) {
-                    console.error('Erro no scraping:', scrapeError);
-                    showNotification('Falha ao atualizar dados. Tentando novamente...', false);
-                    updateApiStatus(false);
-                }
-            } finally {
-                updateStatusElements();
-            }
-        }
-
-        // Scraping de sites públicos usando CORS Anywhere
-        async function scrapePublicBettingSites() {
-            const scrapedData = [];
-            
-            try {
-                // Usar proxy CORS Anywhere (gratuito)
-                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-                const targetUrl = document.getElementById('scrapeUrl').value || 'https://www.oddsportal.com/virtual-soccer/results/';
-                
-                const response = await axios.get(proxyUrl + targetUrl, {
-                    timeout: 10000
-                });
-                const html = response.data;
-                
-                // Criar parser DOM
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Extrair dados (exemplo para OddsPortal)
-                const matchRows = doc.querySelectorAll('.table-main tbody tr');
-                
-                matchRows.forEach(row => {
-                    try {
-                        // Ignorar linhas de cabeçalho
-                        if (row.classList.contains('center') || row.classList.contains('dark')) {
-                            return;
-                        }
-                        
-                        const leagueElem = row.querySelector('td:nth-child(1) a');
-                        const teamsElem = row.querySelector('td:nth-child(2) a');
-                        const scoreElem = row.querySelector('td:nth-child(3)');
-                        
-                        if (!leagueElem || !teamsElem || !scoreElem) return;
-                        
-                        const league = leagueElem.textContent.trim();
-                        const teams = teamsElem.textContent.trim();
-                        const score = scoreElem.textContent.trim();
-                        
-                        if (!teams || !score || !league) return;
-                        
-                        // Separar times
-                        const [home, away] = teams.split(' - ').map(t => t.trim());
-                        
-                        // Processar placar
-                        const [homeGoals, awayGoals] = score.split(':').map(s => parseInt(s.trim()));
-                        
-                        if (isNaN(homeGoals) || isNaN(awayGoals)) return;
-                        
-                        scrapedData.push({
-                            id: `scraped_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                            league,
-                            home_team: home,
-                            away_team: away,
-                            home_goals: homeGoals,
-                            away_goals: awayGoals,
-                            minute: 90, // Partidas já finalizadas
-                            status: 'Finalizado',
-                            odds: {
-                                home: parseFloat((1.5 + Math.random()).toFixed(2)),
-                                draw: parseFloat((3.0 + Math.random()).toFixed(2)),
-                                away: parseFloat((4.0 + Math.random()).toFixed(2))
-                            }
-                        });
-                    } catch (e) {
-                        console.error('Erro ao processar linha:', e);
-                    }
-                });
-            } catch (error) {
-                console.error('Erro no scraping:', error);
-                throw error;
-            }
-            
-            return scrapedData;
-        }
-
-        // Processar partidas ao vivo
-        function processLiveMatches(liveData) {
-            todayMatchesCount = liveData.length;
-            renderLiveMatches(liveData);
-            updateStatusElements();
-        }
-
-        // Renderizar partidas ao vivo
-        function renderLiveMatches(liveData) {
-            const container = document.getElementById('liveMatchesContainer');
-            
-            if (liveData.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 30px; color: #8d99ae;">Nenhuma partida ao vivo no momento</p>';
-                return;
-            }
-
-            let html = '';
-            liveData.forEach(match => {
-                html += `
-                    <div class="live-match">
-                        <div class="match-info">
-                            <div class="match-league">${match.league || 'Liga Desconhecida'}</div>
-                            <div class="match-teams">
-                                <span>${match.home_team || 'Casa'}</span>
-                                <span class="match-score">${match.home_goals}-${match.away_goals}</span>
-                                <span>${match.away_team || 'Visitante'}</span>
-                            </div>
-                        </div>
-                        <div class="live-match-time">${match.minute || 0}'</div>
-                        <div class="live-match-odds">
-                            <span class="odd-value">C: ${(match.odds?.home || 0).toFixed(2)}</span>
-                            <span class="odd-value">E: ${(match.odds?.draw || 0).toFixed(2)}</span>
-                            <span class="odd-value">V: ${(match.odds?.away || 0).toFixed(2)}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // Verificar oportunidades
-        function checkForOpportunities(liveData) {
-            const newAlerts = [];
-            liveOpportunitiesCount = 0;
-            
-            liveData.forEach(match => {
-                // Estratégia 1: Over 2.5 com odds altas
-                if (match.odds?.over_25 > 1.8 && (match.home_goals + match.away_goals) < 3) {
-                    const probability = calculateOver25Probability(match);
-                    const ev = calculateEV(match.odds.over_25, probability);
-                    
-                    if (ev > 5) {
-                        newAlerts.push({
-                            match,
-                            market: 'over_25',
-                            odds: match.odds.over_25,
-                            probability,
-                            ev
-                        });
-                        liveOpportunitiesCount++;
-                    }
-                }
-                
-                // Estratégia 2: Vitória da casa com desequilíbrio
-                if (match.odds?.home > 2.0 && match.home_goals > match.away_goals) {
-                    const probability = calculateHomeWinProbability(match);
-                    const ev = calculateEV(match.odds.home, probability);
-                    
-                    if (ev > 5) {
-                        newAlerts.push({
-                            match,
-                            market: 'home_win',
-                            odds: match.odds.home,
-                            probability,
-                            ev
-                        });
-                        liveOpportunitiesCount++;
-                    }
-                }
-            });
-            
-            if (newAlerts.length > 0) {
-                renderAlerts(newAlerts);
-            }
-            
-            updateStatusElements();
-        }
-
-        // Funções auxiliares para cálculos
-        function calculateOver25Probability(match) {
-            // Lógica simplificada baseada em dados históricos
-            const leagueAvg = getLeagueAverage(match.league);
-            return leagueAvg.over25_rate * 0.9 + (match.minute > 60 ? 0.1 : 0);
-        }
-
-        function calculateHomeWinProbability(match) {
-            const leagueAvg = getLeagueAverage(match.league);
-            const goalDiff = match.home_goals - match.away_goals;
-            return leagueAvg.home_win_rate + (goalDiff > 0 ? 0.15 : -0.15);
-        }
-
-        function calculateEV(odds, probability) {
-            return (odds * probability - 1) * 100;
-        }
-
-        function getLeagueAverage(leagueName) {
-            // Valores padrão
-            const defaults = {
-                over25_rate: 0.65,
-                home_win_rate: 0.50
-            };
-            
-            // Tentar encontrar dados reais
-            if (leagueStats[leagueName]) {
-                return {
-                    over25_rate: leagueStats[leagueName].over25Prob,
-                    home_win_rate: leagueStats[leagueName].homeWinProb
-                };
-            }
-            
-            return defaults;
-        }
-
-        // Renderizar alertas
-        function renderAlerts(alerts) {
-            const container = document.getElementById('alertsContainer');
-            let html = '';
-            
-            alerts.forEach(alert => {
-                html += `
-                    <div class="alert-item positive">
-                        <i class="fas fa-bolt"></i>
-                        <div class="content">
-                            <strong>OPORTUNIDADE!</strong> 
-                            ${alert.match.home_team} vs ${alert.match.away_team} - 
-                            ${alert.market === 'over_25' ? 'Over 2.5' : 'Vitória da Casa'} 
-                            @ ${alert.odds.toFixed(2)} (EV: +${alert.ev.toFixed(1)}%)
-                        </div>
-                        <button class="btn btn-sm" 
-                                onclick="analyzeOpportunity('${alert.match.league}', '${alert.market}', ${alert.odds})">
-                            Analisar
-                        </button>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // Atualizar status da API
+        // Função para atualizar status da API
         function updateApiStatus(connected) {
             const statusElement = document.getElementById('apiStatus');
             if (connected) {
@@ -1523,27 +1479,7 @@ Brasil Virtual,1,1"></textarea>
             }
         }
 
-        // Atualizar elementos de status
-        function updateStatusElements() {
-            lastUpdateElement.textContent = lastUpdateTime.toLocaleTimeString();
-            todayMatchesElement.textContent = todayMatchesCount;
-            liveOpportunitiesElement.textContent = liveOpportunitiesCount;
-        }
-
-        // Função para analisar oportunidade
-        function analyzeOpportunity(league, market, odds) {
-            document.getElementById('leagueFilter').value = league;
-            document.getElementById('marketType').value = market;
-            document.getElementById('oddInput').value = odds;
-            calculateValue();
-            
-            // Rolar até a calculadora
-            document.querySelector('#valueResult').scrollIntoView({
-                behavior: 'smooth'
-            });
-        }
-
-        // Configurar abas
+        // Função para configurar abas
         function setupTabs() {
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
@@ -1560,12 +1496,13 @@ Brasil Virtual,1,1"></textarea>
             });
         }
 
-        // Atualizar filtro de ligas
+        // Função para atualizar filtro de ligas
         function updateLeagueFilter() {
             // Coletar todas as ligas únicas
-            const leagues = [...new Set(matches.map(match => match.league))];
+            const leagues = [...new Set(dataStore.matches.map(match => match.league))];
             
             // Limpar e adicionar opções
+            const leagueFilter = document.getElementById('leagueFilter');
             leagueFilter.innerHTML = '<option value="all">Todas as Ligas</option>';
             leagues.forEach(league => {
                 const option = document.createElement('option');
@@ -1575,217 +1512,15 @@ Brasil Virtual,1,1"></textarea>
             });
         }
         
-        // Atualizar estatísticas do cabeçalho
-        function updateHeaderStats() {
-            document.getElementById('headerMatches').textContent = matches.length;
-            
-            // Calcular lucro potencial (exemplo baseado em dados)
-            let profitPotential = 0;
-            if (matches.length > 20) {
-                const avgGoals = matches.reduce((sum, match) => sum + match.home_goals + match.away_goals, 0) / matches.length;
-                const homeWinRate = matches.filter(m => m.home_goals > m.away_goals).length / matches.length;
-                profitPotential = Math.min(35, Math.floor((avgGoals + homeWinRate * 20) * 2));
-            }
-            document.getElementById('headerProfit').textContent = `${profitPotential}%`;
-            
-            // Calcular oportunidades (exemplo)
-            const opportunities = matches.length > 30 ? Math.floor(matches.length / 15) : 0;
-            document.getElementById('headerValue').textContent = opportunities;
-        }
-
-        // Carregar dados de demonstração
-        function loadDemoData() {
-            matches = [
-                {league: "Virtual Premier", home_goals: 2, away_goals: 1},
-                {league: "Virtual Premier", home_goals: 3, away_goals: 2},
-                {league: "Virtual Premier", home_goals: 1, away_goals: 1},
-                {league: "Virtual Premier", home_goals: 4, away_goals: 1},
-                {league: "Virtual Premier", home_goals: 2, away_goals: 0},
-                {league: "Virtual La Liga", home_goals: 4, away_goals: 0},
-                {league: "Virtual La Liga", home_goals: 2, away_goals: 3},
-                {league: "Virtual La Liga", home_goals: 1, away_goals: 1},
-                {league: "Virtual La Liga", home_goals: 3, away_goals: 2},
-                {league: "Brasil Virtual", home_goals: 0, away_goals: 0},
-                {league: "Brasil Virtual", home_goals: 1, away_goals: 2},
-                {league: "Brasil Virtual", home_goals: 3, away_goals: 1},
-                {league: "Brasil Virtual", home_goals: 2, away_goals: 2},
-                {league: "Euro Virtual", home_goals: 3, away_goals: 1},
-                {league: "Euro Virtual", home_goals: 1, away_goals: 0},
-                {league: "Euro Virtual", home_goals: 2, away_goals: 1},
-                {league: "Champions Virtual", home_goals: 3, away_goals: 3},
-                {league: "Champions Virtual", home_goals: 2, away_goals: 1},
-                {league: "Champions Virtual", home_goals: 4, away_goals: 2},
-                {league: "Premier Asia", home_goals: 1, away_goals: 0},
-                {league: "Premier Asia", home_goals: 2, away_goals: 1},
-                {league: "Premier Asia", home_goals: 0, away_goals: 0},
-                {league: "Copa Virtual", home_goals: 3, away_goals: 1},
-                {league: "Copa Virtual", home_goals: 2, away_goals: 2},
-                {league: "Copa Virtual", home_goals: 1, away_goals: 3},
-                {league: "Serie A Virtual", home_goals: 1, away_goals: 1},
-                {league: "Serie A Virtual", home_goals: 3, away_goals: 0},
-                {league: "Serie A Virtual", home_goals: 2, away_goals: 1},
-                {league: "Bundesliga Virtual", home_goals: 4, away_goals: 2},
-                {league: "Bundesliga Virtual", home_goals: 1, away_goals: 3},
-                {league: "Bundesliga Virtual", home_goals: 2, away_goals: 2}
-            ];
-            
-            saveData();
-            showNotification('Dados de demonstração carregados com sucesso!');
-            init();
-        }
-
-        // Processar CSV
-        function parseCSV() {
-            const csv = document.getElementById('csvInput').value.trim();
-            if (!csv) {
-                showNotification('Por favor, insira dados CSV válidos', false);
-                return;
-            }
-            
-            const lines = csv.split('\n');
-            matches = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const parts = line.split(',');
-                if (parts.length >= 3) {
-                    matches.push({
-                        league: parts[0].trim(),
-                        home_goals: parseInt(parts[1]),
-                        away_goals: parseInt(parts[2])
-                    });
-                }
-            }
-            
-            saveData();
-            showNotification(`${matches.length} partidas importadas com sucesso!`);
-            init();
-        }
-
-        // Adicionar dados manualmente
-        function addManualData() {
-            const league = document.getElementById('leagueInput').value.trim();
-            const home = parseInt(document.getElementById('homeInput').value);
-            const away = parseInt(document.getElementById('awayInput').value);
-            
-            if (!league || isNaN(home) || isNaN(away)) {
-                showNotification('Preencha todos os campos corretamente', false);
-                return;
-            }
-            
-            matches.push({
-                league: league,
-                home_goals: home,
-                away_goals: away
-            });
-            
-            // Limpar campos
-            document.getElementById('leagueInput').value = '';
-            document.getElementById('homeInput').value = '';
-            document.getElementById('awayInput').value = '';
-            
-            saveData();
-            showNotification('Partida adicionada com sucesso!');
-            init();
-        }
-
-        // Exportar CSV
-        function exportCSV() {
-            if (matches.length === 0) {
-                showNotification('Nenhum dado para exportar', false);
-                return;
-            }
-            
-            let csv = 'league,home_goals,away_goals\n';
-            matches.forEach(m => {
-                csv += `${m.league},${m.home_goals},${m.away_goals}\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'dados-futebol-virtual.csv';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // Limpar dados
-        function clearData() {
-            if (confirm('Tem certeza que deseja apagar todos os dados? Esta ação não pode ser desfeita.')) {
-                matches = [];
-                saveData();
-                showNotification('Todos os dados foram apagados');
-                init();
-            }
-        }
-
-        // Salvar dados no localStorage
-        function saveData() {
-            localStorage.setItem('futebolVirtualData', JSON.stringify(matches));
-        }
-
-        // Cálculos estatísticos
-        function calculateStatistics() {
-            leagueStats = {};
-            
-            // Processar todas as partidas
-            matches.forEach(match => {
-                const league = match.league;
-                
-                // Inicializar estatísticas da liga se necessário
-                if (!leagueStats[league]) {
-                    leagueStats[league] = {
-                        totalMatches: 0,
-                        totalGoals: 0,
-                        homeWins: 0,
-                        awayWins: 0,
-                        draws: 0,
-                        over25: 0,
-                        under25: 0
-                    };
-                }
-                
-                const stats = leagueStats[league];
-                stats.totalMatches++;
-                stats.totalGoals += match.home_goals + match.away_goals;
-                
-                // Resultados
-                if (match.home_goals > match.away_goals) stats.homeWins++;
-                else if (match.home_goals < match.away_goals) stats.awayWins++;
-                else stats.draws++;
-                
-                // Over/Under
-                const totalGoals = match.home_goals + match.away_goals;
-                if (totalGoals > 2.5) stats.over25++;
-                else stats.under25++;
-            });
-            
-            // Calcular probabilidades
-            for (const league in leagueStats) {
-                const s = leagueStats[league];
-                s.avgGoals = s.totalGoals / s.totalMatches;
-                s.homeWinProb = s.homeWins / s.totalMatches;
-                s.awayWinProb = s.awayWins / s.totalMatches;
-                s.drawProb = s.draws / s.totalMatches;
-                s.over25Prob = s.over25 / s.totalMatches;
-                s.under25Prob = s.under25 / s.totalMatches;
-            }
-        }
-
-        // Renderizar cards de estatísticas
+        // Função para renderizar cards de estatísticas
         function renderStatsCards() {
             // Calcular estatísticas gerais
-            let totalMatches = 0;
+            let totalMatches = dataStore.matches.length;
             let totalGoals = 0;
             let homeWins = 0;
             let over25 = 0;
             
-            matches.forEach(match => {
-                totalMatches++;
+            dataStore.matches.forEach(match => {
                 totalGoals += match.home_goals + match.away_goals;
                 if (match.home_goals > match.away_goals) homeWins++;
                 if (match.home_goals + match.away_goals > 2.5) over25++;
@@ -1805,10 +1540,12 @@ Brasil Virtual,1,1"></textarea>
             updateHeaderStats();
         }
 
-        // Renderizar tabela de estatísticas
+        // Função para renderizar tabela de estatísticas
         function renderStatsTable() {
-            if (Object.keys(leagueStats).length === 0) {
-                document.getElementById('statsTable').innerHTML = '<p class="stat-card" style="text-align:center; padding:30px;">Nenhum dado disponível. Importe dados para começar.</p>';
+            const statsTable = document.getElementById('statsTable');
+            
+            if (Object.keys(dataStore.leagueStats).length === 0) {
+                statsTable.innerHTML = '<p class="stat-card" style="text-align:center; padding:30px;">Nenhum dado disponível. Importe dados para começar.</p>';
                 return;
             }
             
@@ -1827,8 +1564,8 @@ Brasil Virtual,1,1"></textarea>
                 </thead>
                 <tbody>`;
             
-            for (const league in leagueStats) {
-                const s = leagueStats[league];
+            for (const league in dataStore.leagueStats) {
+                const s = dataStore.leagueStats[league];
                 html += `<tr style="background: rgba(20, 33, 61, 0.7);">
                     <td style="padding:15px; text-align:left; border-left: 4px solid #4361ee;">${league}</td>
                     <td style="padding:15px; text-align:center;">${s.totalMatches}</td>
@@ -1842,10 +1579,10 @@ Brasil Virtual,1,1"></textarea>
             }
             
             html += `</tbody></table>`;
-            document.getElementById('statsTable').innerHTML = html;
+            statsTable.innerHTML = html;
         }
 
-        // Renderizar gráfico
+        // Função para renderizar gráfico
         function renderChart() {
             const ctx = document.getElementById('statsChart').getContext('2d');
             
@@ -1854,13 +1591,13 @@ Brasil Virtual,1,1"></textarea>
                 chartInstance.destroy();
             }
             
-            const leagues = Object.keys(leagueStats);
+            const leagues = Object.keys(dataStore.leagueStats);
             if (leagues.length === 0) return;
             
             const datasets = [
                 {
                     label: 'Vitória da Casa',
-                    data: leagues.map(l => leagueStats[l].homeWinProb * 100),
+                    data: leagues.map(l => dataStore.leagueStats[l].homeWinProb * 100),
                     backgroundColor: 'rgba(76, 201, 240, 0.7)',
                     borderColor: 'rgba(76, 201, 240, 1)',
                     borderWidth: 2,
@@ -1868,7 +1605,7 @@ Brasil Virtual,1,1"></textarea>
                 },
                 {
                     label: 'Vitória do Visitante',
-                    data: leagues.map(l => leagueStats[l].awayWinProb * 100),
+                    data: leagues.map(l => dataStore.leagueStats[l].awayWinProb * 100),
                     backgroundColor: 'rgba(247, 37, 133, 0.7)',
                     borderColor: 'rgba(247, 37, 133, 1)',
                     borderWidth: 2,
@@ -1876,7 +1613,7 @@ Brasil Virtual,1,1"></textarea>
                 },
                 {
                     label: 'Over 2.5 Gols',
-                    data: leagues.map(l => leagueStats[l].over25Prob * 100),
+                    data: leagues.map(l => dataStore.leagueStats[l].over25Prob * 100),
                     backgroundColor: 'rgba(114, 9, 183, 0.7)',
                     borderColor: 'rgba(114, 9, 183, 1)',
                     borderWidth: 2,
@@ -1967,7 +1704,7 @@ Brasil Virtual,1,1"></textarea>
             });
         }
 
-        // Calculadora de valor
+        // Função para calcular valor
         function calculateValue() {
             const market = document.getElementById('marketType').value;
             const odd = parseFloat(document.getElementById('oddInput').value);
@@ -1983,7 +1720,7 @@ Brasil Virtual,1,1"></textarea>
             
             // Se "Todas as Ligas" for selecionada, analisar todas
             const leagues = selectedLeague === 'all' 
-                ? Object.keys(leagueStats) 
+                ? Object.keys(dataStore.leagueStats) 
                 : [selectedLeague];
             
             let bestLeague = "";
@@ -1993,11 +1730,11 @@ Brasil Virtual,1,1"></textarea>
             leagues.forEach(league => {
                 let prob = 0;
                 switch(market) {
-                    case 'home': prob = leagueStats[league].homeWinProb; break;
-                    case 'away': prob = leagueStats[league].awayWinProb; break;
-                    case 'draw': prob = leagueStats[league].drawProb; break;
-                    case 'over': prob = leagueStats[league].over25Prob; break;
-                    case 'under': prob = leagueStats[league].under25Prob; break;
+                    case 'home': prob = dataStore.leagueStats[league].homeWinProb; break;
+                    case 'away': prob = dataStore.leagueStats[league].awayWinProb; break;
+                    case 'draw': prob = dataStore.leagueStats[league].drawProb; break;
+                    case 'over': prob = dataStore.leagueStats[league].over25Prob; break;
+                    case 'under': prob = dataStore.leagueStats[league].under25Prob; break;
                     // Para novos mercados, usar valores médios (em sistema real viria de cálculo)
                     case 'over_0.5_ht': prob = 0.75; break;
                     case 'over_1.5': prob = 0.68; break;
@@ -2097,60 +1834,402 @@ Brasil Virtual,1,1"></textarea>
             valueResult.innerHTML = result;
         }
 
-        // Scraping via frontend
-        async function scrapeData() {
-            const url = document.getElementById('scrapeUrl').value;
-            const resultsDiv = document.getElementById('scrapeResults');
+        // ==================== [FUNÇÕES ATUALIZADAS] ====================
+
+        // Conectar a fontes gratuitas de dados (AGORA USANDO API)
+        function connectToFreeDataSources() {
+            registerServiceWorker();
             
-            if (!url) {
-                showNotification('Insira uma URL válida', false);
+            // Atualizar a cada 2 minutos
+            setInterval(fetchDataFromAPI, 120000);
+            
+            // Primeira carga imediata
+            fetchDataFromAPI();
+        }
+
+        // Processar partidas ao vivo
+        function processLiveMatches(liveData) {
+            dataStore.todayMatchesCount = liveData.length;
+            renderLiveMatches(liveData);
+            updateStatusElements();
+        }
+
+        // Renderizar partidas ao vivo
+        function renderLiveMatches(liveData) {
+            const container = document.getElementById('liveMatchesContainer');
+            
+            if (liveData.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 30px; color: #8d99ae;">Nenhuma partida ao vivo no momento</p>';
+                return;
+            }
+
+            let html = '';
+            liveData.forEach(match => {
+                html += `
+                    <div class="live-match">
+                        <div class="match-info">
+                            <div class="match-league">${match.league || 'Liga Desconhecida'}</div>
+                            <div class="match-teams">
+                                <span>${match.home_team || 'Casa'}</span>
+                                <span class="match-score">${match.home_goals}-${match.away_goals}</span>
+                                <span>${match.away_team || 'Visitante'}</span>
+                            </div>
+                        </div>
+                        <div class="live-match-time">${match.minute || 0}'</div>
+                        <div class="live-match-odds">
+                            <span class="odd-value">C: ${(match.odds?.home || 0).toFixed(2)}</span>
+                            <span class="odd-value">E: ${(match.odds?.draw || 0).toFixed(2)}</span>
+                            <span class="odd-value">V: ${(match.odds?.away || 0).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Verificar oportunidades
+        function checkForOpportunities(liveData) {
+            const newAlerts = [];
+            dataStore.liveOpportunitiesCount = 0;
+            
+            liveData.forEach(match => {
+                // Estratégia 1: Over 2.5 com odds altas
+                if (match.odds?.over_25 > 1.8 && (match.home_goals + match.away_goals) < 3) {
+                    const probability = calculateOver25Probability(match);
+                    const ev = calculateEV(match.odds.over_25, probability);
+                    
+                    if (ev > 5) {
+                        newAlerts.push({
+                            match,
+                            market: 'over_25',
+                            odds: match.odds.over_25,
+                            probability,
+                            ev
+                        });
+                        dataStore.liveOpportunitiesCount++;
+                    }
+                }
+                
+                // Estratégia 2: Vitória da casa com desequilíbrio
+                if (match.odds?.home > 2.0 && match.home_goals > match.away_goals) {
+                    const probability = calculateHomeWinProbability(match);
+                    const ev = calculateEV(match.odds.home, probability);
+                    
+                    if (ev > 5) {
+                        newAlerts.push({
+                            match,
+                            market: 'home_win',
+                            odds: match.odds.home,
+                            probability,
+                            ev
+                        });
+                        dataStore.liveOpportunitiesCount++;
+                    }
+                }
+            });
+            
+            if (newAlerts.length > 0) {
+                renderAlerts(newAlerts);
+            }
+            
+            updateStatusElements();
+        }
+
+        // Funções auxiliares para cálculos
+        function calculateOver25Probability(match) {
+            // Lógica simplificada baseada em dados históricos
+            const leagueAvg = getLeagueAverage(match.league);
+            return leagueAvg.over25_rate * 0.9 + (match.minute > 60 ? 0.1 : 0);
+        }
+
+        function calculateHomeWinProbability(match) {
+            const leagueAvg = getLeagueAverage(match.league);
+            const goalDiff = match.home_goals - match.away_goals;
+            return leagueAvg.home_win_rate + (goalDiff > 0 ? 0.15 : -0.15);
+        }
+
+        function calculateEV(odds, probability) {
+            return (odds * probability - 1) * 100;
+        }
+
+        function getLeagueAverage(leagueName) {
+            // Valores padrão
+            const defaults = {
+                over25_rate: 0.65,
+                home_win_rate: 0.50
+            };
+            
+            // Tentar encontrar dados reais
+            if (dataStore.leagueStats[leagueName]) {
+                return {
+                    over25_rate: dataStore.leagueStats[leagueName].over25Prob,
+                    home_win_rate: dataStore.leagueStats[leagueName].homeWinProb
+                };
+            }
+            
+            return defaults;
+        }
+
+        // Renderizar alertas
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            let html = '';
+            
+            alerts.forEach(alert => {
+                html += `
+                    <div class="alert-item positive">
+                        <i class="fas fa-bolt"></i>
+                        <div class="content">
+                            <strong>OPORTUNIDADE!</strong> 
+                            ${alert.match.home_team} vs ${alert.match.away_team} - 
+                            ${alert.market === 'over_25' ? 'Over 2.5' : 'Vitória da Casa'} 
+                            @ ${alert.odds.toFixed(2)} (EV: +${alert.ev.toFixed(1)}%)
+                        </div>
+                        <button class="btn btn-sm" 
+                                onclick="analyzeOpportunity('${alert.match.league}', '${alert.market}', ${alert.odds})">
+                            Analisar
+                        </button>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Atualizar elementos de status
+        function updateStatusElements() {
+            document.getElementById('lastUpdate').textContent = dataStore.lastUpdateTime.toLocaleTimeString();
+            document.getElementById('todayMatches').textContent = dataStore.todayMatchesCount;
+            document.getElementById('liveOpportunities').textContent = dataStore.liveOpportunitiesCount;
+        }
+
+        // Função para analisar oportunidade
+        function analyzeOpportunity(league, market, odds) {
+            document.getElementById('leagueFilter').value = league;
+            document.getElementById('marketType').value = market;
+            document.getElementById('oddInput').value = odds;
+            calculateValue();
+            
+            // Rolar até a calculadora
+            document.querySelector('#valueResult').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Atualizar estatísticas do cabeçalho
+        function updateHeaderStats() {
+            document.getElementById('headerMatches').textContent = dataStore.matches.length;
+            
+            // Calcular lucro potencial (exemplo baseado em dados)
+            let profitPotential = 0;
+            if (dataStore.matches.length > 20) {
+                const avgGoals = dataStore.matches.reduce((sum, match) => sum + match.home_goals + match.away_goals, 0) / dataStore.matches.length;
+                const homeWinRate = dataStore.matches.filter(m => m.home_goals > m.away_goals).length / dataStore.matches.length;
+                profitPotential = Math.min(35, Math.floor((avgGoals + homeWinRate * 20) * 2));
+            }
+            document.getElementById('headerProfit').textContent = `${profitPotential}%`;
+            
+            // Calcular oportunidades (exemplo)
+            const opportunities = dataStore.matches.length > 30 ? Math.floor(dataStore.matches.length / 15) : 0;
+            document.getElementById('headerValue').textContent = opportunities;
+        }
+
+        // Carregar dados de demonstração
+        function loadDemoData() {
+            const demoMatches = [
+                {league: "Virtual Premier", home_goals: 2, away_goals: 1},
+                {league: "Virtual Premier", home_goals: 3, away_goals: 2},
+                {league: "Virtual Premier", home_goals: 1, away_goals: 1},
+                {league: "Virtual Premier", home_goals: 4, away_goals: 1},
+                {league: "Virtual Premier", home_goals: 2, away_goals: 0},
+                {league: "Virtual La Liga", home_goals: 4, away_goals: 0},
+                {league: "Virtual La Liga", home_goals: 2, away_goals: 3},
+                {league: "Virtual La Liga", home_goals: 1, away_goals: 1},
+                {league: "Virtual La Liga", home_goals: 3, away_goals: 2},
+                {league: "Brasil Virtual", home_goals: 0, away_goals: 0},
+                {league: "Brasil Virtual", home_goals: 1, away_goals: 2},
+                {league: "Brasil Virtual", home_goals: 3, away_goals: 1},
+                {league: "Brasil Virtual", home_goals: 2, away_goals: 2},
+                {league: "Euro Virtual", home_goals: 3, away_goals: 1},
+                {league: "Euro Virtual", home_goals: 1, away_goals: 0},
+                {league: "Euro Virtual", home_goals: 2, away_goals: 1},
+                {league: "Champions Virtual", home_goals: 3, away_goals: 3},
+                {league: "Champions Virtual", home_goals: 2, away_goals: 1},
+                {league: "Champions Virtual", home_goals: 4, away_goals: 2},
+                {league: "Premier Asia", home_goals: 1, away_goals: 0},
+                {league: "Premier Asia", home_goals: 2, away_goals: 1},
+                {league: "Premier Asia", home_goals: 0, away_goals: 0},
+                {league: "Copa Virtual", home_goals: 3, away_goals: 1},
+                {league: "Copa Virtual", home_goals: 2, away_goals: 2},
+                {league: "Copa Virtual", home_goals: 1, away_goals: 3},
+                {league: "Serie A Virtual", home_goals: 1, away_goals: 1},
+                {league: "Serie A Virtual", home_goals: 3, away_goals: 0},
+                {league: "Serie A Virtual", home_goals: 2, away_goals: 1},
+                {league: "Bundesliga Virtual", home_goals: 4, away_goals: 2},
+                {league: "Bundesliga Virtual", home_goals: 1, away_goals: 3},
+                {league: "Bundesliga Virtual", home_goals: 2, away_goals: 2}
+            ];
+            
+            dataStore.matches = demoMatches;
+            dataStore.saveData();
+            showNotification('Dados de demonstração carregados com sucesso!');
+        }
+
+        // Processar CSV
+        function parseCSV() {
+            const csv = document.getElementById('csvInput').value.trim();
+            if (!csv) {
+                showNotification('Por favor, insira dados CSV válidos', false);
+                return;
+            }
+            
+            const lines = csv.split('\n');
+            const matches = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const parts = line.split(',');
+                if (parts.length >= 3) {
+                    matches.push({
+                        league: parts[0].trim(),
+                        home_goals: parseInt(parts[1]),
+                        away_goals: parseInt(parts[2])
+                    });
+                }
+            }
+            
+            dataStore.matches = matches;
+            dataStore.saveData();
+            showNotification(`${matches.length} partidas importadas com sucesso!`);
+        }
+
+        // Adicionar dados manualmente
+        function addManualData() {
+            const league = document.getElementById('leagueInput').value.trim();
+            const home = parseInt(document.getElementById('homeInput').value);
+            const away = parseInt(document.getElementById('awayInput').value);
+            
+            if (!league || isNaN(home) || isNaN(away)) {
+                showNotification('Preencha todos os campos corretamente', false);
+                return;
+            }
+            
+            dataStore.addMatch({
+                league: league,
+                home_goals: home,
+                away_goals: away
+            });
+            
+            // Limpar campos
+            document.getElementById('leagueInput').value = '';
+            document.getElementById('homeInput').value = '';
+            document.getElementById('awayInput').value = '';
+            
+            showNotification('Partida adicionada com sucesso!');
+        }
+
+        // Exportar CSV
+        function exportCSV() {
+            if (dataStore.matches.length === 0) {
+                showNotification('Nenhum dado para exportar', false);
+                return;
+            }
+            
+            let csv = 'league,home_goals,away_goals\n';
+            dataStore.matches.forEach(m => {
+                csv += `${m.league},${m.home_goals},${m.away_goals}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dados-futebol-virtual.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Limpar dados
+        function clearData() {
+            if (confirm('Tem certeza que deseja apagar todos os dados? Esta ação não pode ser desfeita.')) {
+                dataStore.clearData();
+                showNotification('Todos os dados foram apagados');
+            }
+        }
+
+        // Buscar dados da API
+        async function fetchApiData() {
+            const apiEndpoint = document.getElementById('apiEndpoint').value;
+            const resultsDiv = document.getElementById('apiResults');
+            const button = document.getElementById('fetchApiBtn');
+            
+            if (!apiEndpoint) {
+                showNotification('Insira um endpoint de API válido', false);
                 return;
             }
             
             try {
-                resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Coletando dados. Isso pode levar alguns segundos...</p>';
+                // Mostrar estado de carregamento
+                button.classList.add('loading');
+                button.disabled = true;
                 
-                const scrapedData = await scrapePublicBettingSites();
-                let html = '';
+                resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Buscando dados da API...</p>';
                 
-                if (scrapedData.length > 0) {
-                    html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
-                        <i class="fas fa-check-circle"></i> <strong>${scrapedData.length} partidas encontradas!</strong>
-                    </p>
-                    <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
-                    
-                    scrapedData.slice(0, 10).forEach(match => {
-                        html += `
-                        <div class="match-item">
-                            <div class="match-info">
-                                <div class="match-league">${match.league}</div>
-                                <div class="match-teams">
-                                    <span>${match.home_team}</span>
-                                    <span class="match-score">${match.home_goals}-${match.away_goals}</span>
-                                    <span>${match.away_team}</span>
-                                </div>
+                // Simulação de chamada à API (em produção, substitua por axios.get)
+                // const response = await axios.get(apiEndpoint);
+                // const apiData = response.data;
+                
+                // Simulação de dados
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                const apiData = {
+                    matches: [
+                        {league: "Virtual Premier", home_team: "Arsenal", away_team: "Chelsea", home_goals: 2, away_goals: 1},
+                        {league: "Virtual La Liga", home_team: "Barcelona", away_team: "Real Madrid", home_goals: 3, away_goals: 2},
+                        {league: "Brasil Virtual", home_team: "Flamengo", away_team: "Palmeiras", home_goals: 1, away_goals: 1}
+                    ]
+                };
+                
+                // Processar resultados
+                let html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
+                    <i class="fas fa-check-circle"></i> <strong>${apiData.matches.length} partidas encontradas!</strong>
+                </p>
+                <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
+                
+                apiData.matches.slice(0, 10).forEach(match => {
+                    html += `
+                    <div class="match-item">
+                        <div class="match-info">
+                            <div class="match-league">${match.league}</div>
+                            <div class="match-teams">
+                                <span>${match.home_team}</span>
+                                <span class="match-score">${match.home_goals}-${match.away_goals}</span>
+                                <span>${match.away_team}</span>
                             </div>
-                        </div>`;
-                    });
-                    
-                    if (scrapedData.length > 10) {
-                        html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
-                            ... +${scrapedData.length - 10} partidas
-                        </p>`;
-                    }
-                    
-                    html += `</div>`;
-                } else {
-                    html = `<p style="text-align: center; color: #f72585; padding: 20px;">
-                        <i class="fas fa-exclamation-triangle"></i> Nenhuma partida encontrada. Tente outra URL.
+                        </div>
+                    </div>`;
+                });
+                
+                if (apiData.matches.length > 10) {
+                    html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
+                        ... +${apiData.matches.length - 10} partidas
                     </p>`;
                 }
                 
+                html += `</div>`;
+                
                 resultsDiv.innerHTML = html;
+                showNotification('Dados da API importados com sucesso!');
             } catch (error) {
                 resultsDiv.innerHTML = `<p style="text-align: center; color: #f72585; padding: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i> Erro: ${error.message || 'Falha na coleta'}
+                    <i class="fas fa-exclamation-triangle"></i> Erro: ${error.message || 'Falha ao buscar dados da API'}
                 </p>`;
+            } finally {
+                button.classList.remove('loading');
+                button.disabled = false;
             }
         }
 
@@ -2162,11 +2241,11 @@ Brasil Virtual,1,1"></textarea>
             // Gerar oportunidades fictícias (em sistema real, analisaria dados reais)
             setTimeout(() => {
                 const opportunities = [];
-                const leagues = [...new Set(matches.map(m => m.league))];
+                const leagues = [...new Set(dataStore.matches.map(m => m.league))];
                 
                 leagues.forEach(league => {
                     // Filtrar partidas da liga
-                    const leagueMatches = matches.filter(m => m.league === league);
+                    const leagueMatches = dataStore.matches.filter(m => m.league === league);
                     if (leagueMatches.length < 5) return;
                     
                     // Criar 1-3 oportunidades por liga
@@ -2247,8 +2326,33 @@ Brasil Virtual,1,1"></textarea>
             }, 1500); // Simular tempo de processamento
         }
 
-        // Inicializar quando o DOM estiver carregado
-        document.addEventListener('DOMContentLoaded', init);
+        // ==================== [INICIALIZAÇÃO] ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Usar Web Worker para cálculos pesados
+            const statsWorker = createStatsWorker();
+            
+            statsWorker.onmessage = function(e) {
+                dataStore.leagueStats = e.data;
+                document.dispatchEvent(new CustomEvent('stats-updated'));
+            };
+            
+            // Atualizar estatísticas via worker
+            function updateStatsWithWorker() {
+                statsWorker.postMessage(dataStore.matches);
+            }
+            
+            // Atualizar inicialmente
+            updateStatsWithWorker();
+            
+            // Ouvir eventos de atualização de dados
+            dataStore.saveData = function() {
+                localStorage.setItem('futebolVirtualData', JSON.stringify(this.matches));
+                updateStatsWithWorker();
+            };
+            
+            // Iniciar a aplicação
+            init();
+        });
     </script>
 </body>
 </html>
