@@ -889,7 +889,7 @@
                     <span class="status-dot"></span> Conectado
                 </span>
             </h2>
-            <p>Dados atualizados em tempo real usando recursos gratuitos</p>
+            <p>Dados atualizados em tempo real usando API profissional</p>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Última Atualização</div>
@@ -905,7 +905,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Fonte de Dados</div>
-                    <div class="stat-value" style="font-size:1.5rem">API + Cache</div>
+                    <div class="stat-value" style="font-size:1.5rem">API FootStats</div>
                 </div>
             </div>
         </div>
@@ -975,9 +975,7 @@ Brasil Virtual,1,1"></textarea>
                     <div class="scrape-card">
                         <div style="margin-bottom: 20px;">
                             <label>Endpoint da API:</label>
-                            <input type="text" id="apiEndpoint"
-       placeholder="https://api.example.com/matches" 
-       value="https://sua-api-producao.com/v1/matches"> <!-- 👈🏼 Atualize aqui -->
+                            <input type="text" id="apiEndpoint" placeholder="https://api.example.com/matches" value="https://api.footstats.com/v1/matches">
                         </div>
                         
                         <button class="btn btn-success" id="fetchApiBtn" onclick="fetchApiData()" style="margin-top: 15px;">
@@ -1202,7 +1200,7 @@ Brasil Virtual,1,1"></textarea>
         
         <footer>
             <p>⚠️ Aviso: Apostas envolvem risco de perda financeira. Use este sistema como ferramenta auxiliar.</p>
-            <p>© 2023 FootStats Pro | Versão Econômica - Recursos Gratuitos</p>
+            <p>© 2023 FootStats Pro | Versão Profissional</p>
         </footer>
     </div>
     
@@ -1212,38 +1210,18 @@ Brasil Virtual,1,1"></textarea>
     </div>
 
     <script>
-        // ==================== [NOVA ESTRUTURA DE DADOS] ====================
-        // Configurações de ambiente
-// Adicione no início do script
-function logEvent(message, level = 'info') {
-  if (level === 'error') console.error(`[${new Date().toISOString()}] ${message}`);
-  else console.log(`[${new Date().toISOString()}] ${message}`);
-  
-  // Opcional: enviar logs para servidor
-  /*
-  axios.post('/logs', {
-    message,
-    level,
-    timestamp: new Date()
-  });
-  */
-}
-
-// Use em toda a aplicação
-try {
-  // ...
-} catch (error) {
-  logEvent(`API Error: ${error.message}`, 'error');
-}
+        // ==================== [CONFIGURAÇÕES DE PRODUÇÃO] ====================
         const API_CONFIG = {
-  BASE_URL: 'https://sua-api-producao.com/v1',
-  API_KEY: 'seu_token_secreto',
-  TIMEOUT: 10000
-};
-        const response = await axios.get(`${API_CONFIG.BASE_URL}/matches`, {
-  headers: { 'Authorization': API_CONFIG.API_KEY },
-  timeout: API_CONFIG.TIMEOUT
-});
+            BASE_URL: 'https://api.footstats.com/v1',  // Altere para sua URL de produção
+            ENDPOINTS: {
+                LIVE_MATCHES: '/matches/live',
+                HISTORICAL_DATA: '/matches/historical'
+            },
+            API_KEY: 'sua_chave_api_secreta',  // Substitua pela sua chave real
+            TIMEOUT: 10000  // Timeout de 10 segundos
+        };
+
+        // ==================== [NOVA ESTRUTURA DE DADOS] ====================
         class DataStore {
             constructor() {
                 this.matches = JSON.parse(localStorage.getItem('futebolVirtualData')) || [];
@@ -1318,6 +1296,7 @@ try {
         // ==================== [INSTÂNCIA GLOBAL] ====================
         const dataStore = new DataStore();
         let chartInstance = null;
+        let statsWorker = null;
         
         // ==================== [FUNÇÕES DE INTERFACE] ====================
         function init() {
@@ -1329,7 +1308,7 @@ try {
             updateStatusElements();
             
             // Conectar a dados em tempo real
-            connectToFreeDataSources();
+            connectToLiveData();
             
             // Registrar event listeners
             document.addEventListener('stats-updated', () => {
@@ -1338,6 +1317,9 @@ try {
                 renderChart();
                 updateHeaderStats();
             });
+            
+            // Registrar Service Worker
+            registerServiceWorker();
         }
 
         // ==================== [WEB WORKER] ====================
@@ -1394,72 +1376,68 @@ try {
             return new Worker(URL.createObjectURL(blob));
         }
 
-        // ==================== [API COMMUNICATION] ====================
-       async function fetchDataFromAPI() {
-  try {
-    updateApiStatus(true);
-    dataStore.lastUpdateTime = new Date();
-    
-    // 👇🏼 SUBSTITUA POR SUA API REAL
-    const response = await axios.get('https://sua-api.com/v1/matches', {
-      headers: {
-        'Authorization': 'Bearer seu-token-de-acesso',
-        'Content-Type': 'application/json'
-      },
-      params: {
-        sport: 'virtual-soccer',
-        status: 'live'
-      async function fetchDataFromAPI() {
-  try {
-    // ... chamada API ...
-  } catch (error) {
-    // 👇🏼 Tratamento detalhado de erros
-    if (error.response) {
-      console.error('Erro na resposta:', error.response.status);
-      showNotification(`Erro na API: ${error.response.status}`, false);
-    } else if (error.request) {
-      console.error('Sem resposta do servidor');
-      showNotification('Servidor não respondeu', false);
-      
-      // Fallback para dados locais
-      if (dataStore.matches.length > 0) {
-        processLiveMatches(dataStore.matches.slice(0, 5));
-        showNotification('Usando dados locais', false);
-      }
-    } else {
-      console.error('Erro na requisição:', error.message);
-      showNotification('Erro de configuração', false);
-    }
-    
-    updateApiStatus(false);
-  }
-}
-    
-    // Ajuste conforme a estrutura da sua API
-    const liveData = response.data.matches; 
-
-    processLiveMatches(liveData);
-    checkForOpportunities(liveData);
-    showNotification('Dados atualizados com sucesso!');
-    
-  } catch (error) {
-    console.error('Erro na API:', error);
-    showNotification('Falha ao conectar com a API', false);
-    updateApiStatus(false);
-  } finally {
-    updateStatusElements();
-  }
-}                
-                // Processar e exibir dados
-                processLiveMatches(liveData);
+        // ==================== [API COMMUNICATION - PRODUÇÃO] ====================
+        async function fetchDataFromAPI() {
+            try {
+                updateApiStatus(true);
+                dataStore.lastUpdateTime = new Date();
                 
-                // Verificar oportunidades
+                // Chamada real para API de produção
+                const response = await axios.get(
+                    API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LIVE_MATCHES,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${API_CONFIG.API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        params: {
+                            sport: 'virtual-soccer',
+                            status: 'live'
+                        },
+                        timeout: API_CONFIG.TIMEOUT
+                    }
+                );
+                
+                // Transformação dos dados conforme necessário
+                const liveData = response.data.map(match => ({
+                    id: match.id,
+                    league: match.league.name,
+                    home_team: match.teams.home,
+                    away_team: match.teams.away,
+                    home_goals: match.score.home,
+                    away_goals: match.score.away,
+                    minute: match.time.elapsed,
+                    odds: {
+                        home: match.odds.home_win,
+                        draw: match.odds.draw,
+                        away: match.odds.away_win,
+                        over_25: match.odds.over_25
+                    }
+                }));
+
+                processLiveMatches(liveData);
                 checkForOpportunities(liveData);
                 
                 showNotification('Dados atualizados com sucesso!');
             } catch (error) {
-                console.error('Erro ao buscar dados da API:', error);
-                showNotification('Falha ao atualizar dados. Tentando novamente...', false);
+                // Tratamento detalhado de erros
+                if (error.response) {
+                    console.error('Erro na resposta:', error.response.status);
+                    showNotification(`Erro na API: ${error.response.status}`, false);
+                } else if (error.request) {
+                    console.error('Sem resposta do servidor');
+                    showNotification('Servidor não respondeu', false);
+                    
+                    // Fallback para dados locais
+                    if (dataStore.matches.length > 0) {
+                        processLiveMatches(dataStore.matches.slice(0, 5));
+                        showNotification('Usando dados locais', false);
+                    }
+                } else {
+                    console.error('Erro na requisição:', error.message);
+                    showNotification('Erro de configuração', false);
+                }
+                
                 updateApiStatus(false);
             } finally {
                 updateStatusElements();
@@ -1467,17 +1445,17 @@ try {
         }
 
         // ==================== [SERVICE WORKER] ====================
-       function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js') // 👈🏼 Caminho para o novo arquivo
-      .then(registration => {
-        console.log('SW registrado:', registration.scope);
-      })
-      .catch(error => {
-        console.error('Falha no SW:', error);
-      });
-  }
-}
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Falha ao registrar Service Worker:', error);
+                    });
+            }
+        }
 
         // ==================== [FUNÇÕES MODULARIZADAS] ====================
 
@@ -1867,10 +1845,8 @@ try {
 
         // ==================== [FUNÇÕES ATUALIZADAS] ====================
 
-        // Conectar a fontes gratuitas de dados (AGORA USANDO API)
-        function connectToFreeDataSources() {
-            registerServiceWorker();
-            
+        // Conectar a fontes de dados em tempo real
+        function connectToLiveData() {
             // Atualizar a cada 2 minutos
             setInterval(fetchDataFromAPI, 120000);
             
@@ -2194,28 +2170,56 @@ try {
 
         // Buscar dados da API
         async function fetchApiData() {
-  const apiEndpoint = document.getElementById('apiEndpoint').value;
-  const button = document.getElementById('fetchApiBtn');
-  
-  try {
-    button.classList.add('loading');
-    resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Buscando dados da API...</p>';
-    
-    // 👇🏼 Adicione autenticação e parâmetros
-    const response = await axios.get(apiEndpoint, {
-      headers: {
-        'X-API-KEY': 'sua_chave_secreta'  // 👈🏼 Sua chave API
-      },
-      params: {
-        sport: 'virtual-soccer',
-        limit: 50
-      },
-      timeout: 10000
-    });
-
-    // ... restante do código ...
-  }
-}
+            const apiEndpoint = document.getElementById('apiEndpoint').value;
+            const resultsDiv = document.getElementById('apiResults');
+            const button = document.getElementById('fetchApiBtn');
+            
+            if (!apiEndpoint) {
+                showNotification('Insira um endpoint de API válido', false);
+                return;
+            }
+            
+            try {
+                // Mostrar estado de carregamento
+                button.classList.add('loading');
+                button.disabled = true;
+                
+                resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Buscando dados da API...</p>';
+                
+                // Chamada à API
+                const response = await axios.get(apiEndpoint, {
+                    headers: {
+                        'Authorization': `Bearer ${API_CONFIG.API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: API_CONFIG.TIMEOUT
+                });
+                
+                // Processar resultados
+                let html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
+                    <i class="fas fa-check-circle"></i> <strong>${response.data.length} partidas encontradas!</strong>
+                </p>
+                <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
+                
+                response.data.slice(0, 10).forEach(match => {
+                    html += `
+                    <div class="match-item">
+                        <div class="match-info">
+                            <div class="match-league">${match.league}</div>
+                            <div class="match-teams">
+                                <span>${match.home_team}</span>
+                                <span class="match-score">${match.home_goals}-${match.away_goals}</span>
+                                <span>${match.away_team}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                
+                if (response.data.length > 10) {
+                    html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
+                        ... +${response.data.length - 10} partidas
+                    </p>`;
+                }
                 
                 html += `</div>`;
                 
@@ -2327,7 +2331,7 @@ try {
         // ==================== [INICIALIZAÇÃO] ====================
         document.addEventListener('DOMContentLoaded', () => {
             // Usar Web Worker para cálculos pesados
-            const statsWorker = createStatsWorker();
+            statsWorker = createStatsWorker();
             
             statsWorker.onmessage = function(e) {
                 dataStore.leagueStats = e.data;
