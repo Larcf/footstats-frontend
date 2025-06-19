@@ -1214,7 +1214,7 @@ Brasil Virtual,1,1"></textarea>
         const API_CONFIG = {
             BASE_URL: 'https://v3.football.api-sports.io',
             ENDPOINTS: {
-                LIVE_MATCHES: '/fixtures?live=all&league=519' // ID da liga de futebol virtual
+                TODAY_MATCHES: '/fixtures?league=519&date=' // Endpoint corrigido com parâmetro de data
             },
             API_KEY: '9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p', // Chave gratuita da API-Sports
             TIMEOUT: 10000  // Timeout de 10 segundos
@@ -1324,8 +1324,11 @@ Brasil Virtual,1,1"></textarea>
         async function testApiConnectivity() {
             const statusElement = document.getElementById('apiStatus');
             try {
+                const today = new Date();
+                const dateString = today.toISOString().split('T')[0];
+                
                 const response = await axios.get(
-                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LIVE_MATCHES}`,
+                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TODAY_MATCHES}${dateString}`,
                     {
                         headers: { 'x-apisports-key': API_CONFIG.API_KEY },
                         timeout: API_CONFIG.TIMEOUT
@@ -1357,34 +1360,52 @@ Brasil Virtual,1,1"></textarea>
                 '<span class="status-dot"></span> Offline';
         }
 
-        // ==================== [API COMMUNICATION] ====================
+        // ==================== [API COMMUNICATION - CORRIGIDA] ====================
         async function fetchDataFromAPI() {
             try {
+                // Obter data atual no formato YYYY-MM-DD
+                const today = new Date();
+                const dateString = today.toISOString().split('T')[0];
+                
                 const response = await axios.get(
-                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LIVE_MATCHES}`,
+                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TODAY_MATCHES}${dateString}`,
                     {
                         headers: { 'x-apisports-key': API_CONFIG.API_KEY },
                         timeout: API_CONFIG.TIMEOUT
                     }
                 );
                 
-                const liveMatches = response.data.response.map(match => ({
-                    league: match.league.name,
-                    home_team: match.teams.home.name,
-                    away_team: match.teams.away.name,
-                    home_goals: match.goals.home,
-                    away_goals: match.goals.away,
-                    minute: match.fixture.status.elapsed,
-                    odds: {
-                        home: match.odds?.home || 0,
-                        draw: match.odds?.draw || 0,
-                        away: match.odds?.away || 0
-                    }
-                }));
-                
-                processLiveMatches(liveMatches);
-                checkForOpportunities(liveMatches);
-                updateApiStatus(true);
+                // Verificar se há dados
+                if (response.data && response.data.response) {
+                    const matches = response.data.response.map(match => ({
+                        id: match.fixture.id,
+                        league: match.league.name,
+                        home_team: match.teams.home.name,
+                        away_team: match.teams.away.name,
+                        home_goals: match.goals.home,
+                        away_goals: match.goals.away,
+                        minute: match.fixture.status.elapsed,
+                        status: match.fixture.status.short,
+                        odds: {
+                            home: match.bookmakers[0]?.bets[0]?.values[0]?.odd || 0,
+                            draw: match.bookmakers[0]?.bets[0]?.values[1]?.odd || 0,
+                            away: match.bookmakers[0]?.bets[0]?.values[2]?.odd || 0,
+                            over_25: match.bookmakers[0]?.bets[1]?.values[0]?.odd || 0
+                        }
+                    }));
+                    
+                    // Filtrar apenas partidas que ainda não terminaram
+                    const liveMatches = matches.filter(match => 
+                        match.status !== 'FT' && match.status !== 'AOT' && match.status !== 'PST'
+                    );
+                    
+                    processLiveMatches(liveMatches);
+                    checkForOpportunities(liveMatches);
+                    updateApiStatus(true);
+                } else {
+                    processLiveMatches([]);
+                    showNotification('Nenhuma partida encontrada para hoje', false);
+                }
             } catch (error) {
                 console.error("Erro na API:", error);
                 updateApiStatus(false);
@@ -1781,35 +1802,47 @@ Brasil Virtual,1,1"></textarea>
             updateStatusElements();
         }
 
-        // Renderizar partidas ao vivo
+        // Renderizar partidas ao vivo - CORRIGIDA
         function renderLiveMatches(liveData) {
             const container = document.getElementById('liveMatchesContainer');
             
             if (liveData.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 30px; color: #8d99ae;">Nenhuma partida ao vivo no momento</p>';
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #8d99ae;">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3 style="margin: 15px 0;">Nenhuma partida ao vivo no momento</h3>
+                        <p>Próximas partidas serão exibidas aqui</p>
+                    </div>
+                `;
                 return;
             }
 
             let html = '';
             liveData.forEach(match => {
+                // Determinar cor do marcador de tempo
+                let timeColor = '#4cc9f0';
+                if (match.minute > 80) timeColor = '#f72585';
+                else if (match.minute > 40) timeColor = '#f8961e';
+                
                 html += `
-                    <div class="live-match">
-                        <div class="match-info">
-                            <div class="match-league">${match.league || 'Liga Desconhecida'}</div>
-                            <div class="match-teams">
-                                <span>${match.home_team || 'Casa'}</span>
-                                <span class="match-score">${match.home_goals}-${match.away_goals}</span>
-                                <span>${match.away_team || 'Visitante'}</span>
-                            </div>
-                        </div>
-                        <div class="live-match-time">${match.minute || 0}'</div>
-                        <div class="live-match-odds">
-                            <span class="odd-value">C: ${(match.odds?.home || 0).toFixed(2)}</span>
-                            <span class="odd-value">E: ${(match.odds?.draw || 0).toFixed(2)}</span>
-                            <span class="odd-value">V: ${(match.odds?.away || 0).toFixed(2)}</span>
+                <div class="live-match">
+                    <div class="match-info">
+                        <div class="match-league">${match.league}</div>
+                        <div class="match-teams">
+                            <span>${match.home_team}</span>
+                            <span class="match-score">${match.home_goals}-${match.away_goals}</span>
+                            <span>${match.away_team}</span>
                         </div>
                     </div>
-                `;
+                    <div class="live-match-time" style="background: ${timeColor}22; color: ${timeColor};">
+                        ${match.minute || '0'}'
+                    </div>
+                    <div class="live-match-odds">
+                        <span class="odd-value">${match.odds.home.toFixed(2)}</span>
+                        <span class="odd-value">${match.odds.draw.toFixed(2)}</span>
+                        <span class="odd-value">${match.odds.away.toFixed(2)}</span>
+                    </div>
+                </div>`;
             });
             
             container.innerHTML = html;
