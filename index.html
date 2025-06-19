@@ -1297,6 +1297,31 @@ Brasil Virtual,1,1"></textarea>
         const dataStore = new DataStore();
         let chartInstance = null;
         let statsWorker = null;
+        function testApiConnectivity() {
+    axios.get(API_CONFIG.BASE_URL + '/health', {
+        headers: {
+            'Authorization': `Bearer ${API_CONFIG.API_KEY}`
+        },
+        timeout: 5000
+    })
+    .then(response => {
+        if (response.status === 200) {
+            updateApiStatus(true);
+            showNotification('Conectado à API com sucesso');
+        } else {
+            updateApiStatus(false);
+        }
+    })
+    .catch(() => {
+        updateApiStatus(false);
+    });
+}
+
+// Chame esta função no init()
+function init() {
+    // ... código existente ...
+    testApiConnectivity();
+}
         
         // ==================== [FUNÇÕES DE INTERFACE] ====================
         function init() {
