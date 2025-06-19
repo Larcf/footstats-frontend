@@ -1479,21 +1479,25 @@ function init() {
         // ==================== [FUNÇÕES MODULARIZADAS] ====================
 
         // Função para mostrar notificação
-        function showNotification(message, isSuccess = true) {
-            const icon = isSuccess ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-exclamation-triangle"></i>';
-            const notification = document.getElementById('notification');
-            
-            notification.innerHTML = `${icon} <span>${message}</span>`;
-            notification.style.background = isSuccess 
-                ? 'linear-gradient(135deg, #4cc9f0, #4895ef)' 
-                : 'linear-gradient(135deg, #f72585, #b5179e)';
-            
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3500);
-        }
+       function showNotification(message, isSuccess = true) {
+    const notification = document.getElementById('notification');
+    
+    // Atualização de conteúdo segura
+    notification.innerHTML = `
+        <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    notification.style.background = isSuccess 
+        ? 'linear-gradient(135deg, #4cc9f0, #4895ef)' 
+        : 'linear-gradient(135deg, #f72585, #b5179e)';
+    
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3500);
+}
 
         // Função para atualizar status da API
         function updateApiStatus(connected) {
