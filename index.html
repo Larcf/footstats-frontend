@@ -1297,24 +1297,69 @@ Brasil Virtual,1,1"></textarea>
         const dataStore = new DataStore();
         let chartInstance = null;
         let statsWorker = null;
-        function testApiConnectivity() {
-    axios.get(API_CONFIG.BASE_URL + '/health', {
+        // ==================== [CONEXÃO COM API] ====================
+function testApiConnectivity() {
+    const statusElement = document.getElementById('apiStatus');
+    
+    // Tentar conectar ao endpoint principal
+    axios.get(API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LIVE_MATCHES, {
+        params: { test: 1 }, // Parâmetro para evitar cache
+        timeout: 3000,
         headers: {
             'Authorization': `Bearer ${API_CONFIG.API_KEY}`
-        },
-        timeout: 5000
+        }
     })
     .then(response => {
-        if (response.status === 200) {
+        // Verificar se a resposta é válida
+        if (response.status >= 200 && response.status < 300) {
             updateApiStatus(true);
             showNotification('Conectado à API com sucesso');
         } else {
             updateApiStatus(false);
+            showNotification('API respondeu com erro: ' + response.status, false);
         }
     })
-    .catch(() => {
+    .catch(error => {
         updateApiStatus(false);
+        
+        // Mensagens detalhadas de erro
+        let errorMsg = 'Erro na conexão com a API';
+        if (error.response) {
+            errorMsg += ` (Status ${error.response.status})`;
+        } else if (error.request) {
+            errorMsg += ' (Sem resposta do servidor)';
+        } else {
+            errorMsg += ` (${error.message})`;
+        }
+        
+        showNotification(errorMsg, false);
     });
+}
+
+// ==================== [ATUALIZAR STATUS] ====================
+function updateApiStatus(connected) {
+    const statusElement = document.getElementById('apiStatus');
+    
+    if (connected) {
+        statusElement.className = "status-indicator status-online";
+        statusElement.innerHTML = '<span class="status-dot"></span> Conectado';
+        statusElement.style.display = "inline-flex";
+    } else {
+        statusElement.className = "status-indicator status-offline";
+        statusElement.innerHTML = '<span class="status-dot"></span> Offline';
+        statusElement.style.display = "inline-flex";
+    }
+}
+
+// ==================== [INICIALIZAÇÃO] ====================
+function init() {
+    // ... outro código ...
+    
+    // Verificar conectividade imediatamente
+    testApiConnectivity();
+    
+    // Verificar a cada 30 segundos
+    setInterval(testApiConnectivity, 30000);
 }
 
 // Chame esta função no init()
