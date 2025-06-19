@@ -885,8 +885,8 @@
         <!-- Seção de Status -->
         <div class="card">
             <h2 class="card-title"><i class="fas fa-plug"></i> Status do Sistema 
-                <span id="apiStatus" class="status-indicator status-online">
-                    <span class="status-dot"></span> Conectado
+                <span id="apiStatus" class="status-indicator">
+                    <span class="status-dot"></span> Verificando...
                 </span>
             </h2>
             <p>Dados atualizados em tempo real usando API profissional</p>
@@ -975,7 +975,7 @@ Brasil Virtual,1,1"></textarea>
                     <div class="scrape-card">
                         <div style="margin-bottom: 20px;">
                             <label>Endpoint da API:</label>
-                            <input type="text" id="apiEndpoint" placeholder="https://api.example.com/matches" value="https://api.footstats.com/v1/matches">
+                            <input type="text" id="apiEndpoint" placeholder="https://api.example.com/matches" value="https://v3.football.api-sports.io/fixtures?live=all">
                         </div>
                         
                         <button class="btn btn-success" id="fetchApiBtn" onclick="fetchApiData()" style="margin-top: 15px;">
@@ -1212,16 +1212,15 @@ Brasil Virtual,1,1"></textarea>
     <script>
         // ==================== [CONFIGURAÇÕES DE PRODUÇÃO] ====================
         const API_CONFIG = {
-            BASE_URL: 'https://api.footstats.com/v1',  // Altere para sua URL de produção
+            BASE_URL: 'https://v3.football.api-sports.io',
             ENDPOINTS: {
-                LIVE_MATCHES: '/matches/live',
-                HISTORICAL_DATA: '/matches/historical'
+                LIVE_MATCHES: '/fixtures?live=all&league=519' // ID da liga de futebol virtual
             },
-            API_KEY: 'sua_chave_api_secreta',  // Substitua pela sua chave real
+            API_KEY: '9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p', // Chave gratuita da API-Sports
             TIMEOUT: 10000  // Timeout de 10 segundos
         };
 
-        // ==================== [NOVA ESTRUTURA DE DADOS] ====================
+        // ==================== [ESTRUTURA DE DADOS] ====================
         class DataStore {
             constructor() {
                 this.matches = JSON.parse(localStorage.getItem('futebolVirtualData')) || [];
@@ -1296,78 +1295,7 @@ Brasil Virtual,1,1"></textarea>
         // ==================== [INSTÂNCIA GLOBAL] ====================
         const dataStore = new DataStore();
         let chartInstance = null;
-        let statsWorker = null;
-        // ==================== [CONEXÃO COM API] ====================
-function testApiConnectivity() {
-    const statusElement = document.getElementById('apiStatus');
-    
-    // Tentar conectar ao endpoint principal
-    axios.get(API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LIVE_MATCHES, {
-        params: { test: 1 }, // Parâmetro para evitar cache
-        timeout: 3000,
-        headers: {
-            'Authorization': `Bearer ${API_CONFIG.API_KEY}`
-        }
-    })
-    .then(response => {
-        // Verificar se a resposta é válida
-        if (response.status >= 200 && response.status < 300) {
-            updateApiStatus(true);
-            showNotification('Conectado à API com sucesso');
-        } else {
-            updateApiStatus(false);
-            showNotification('API respondeu com erro: ' + response.status, false);
-        }
-    })
-    .catch(error => {
-        updateApiStatus(false);
-        
-        // Mensagens detalhadas de erro
-        let errorMsg = 'Erro na conexão com a API';
-        if (error.response) {
-            errorMsg += ` (Status ${error.response.status})`;
-        } else if (error.request) {
-            errorMsg += ' (Sem resposta do servidor)';
-        } else {
-            errorMsg += ` (${error.message})`;
-        }
-        
-        showNotification(errorMsg, false);
-    });
-}
 
-// ==================== [ATUALIZAR STATUS] ====================
-function updateApiStatus(connected) {
-    const statusElement = document.getElementById('apiStatus');
-    
-    if (connected) {
-        statusElement.className = "status-indicator status-online";
-        statusElement.innerHTML = '<span class="status-dot"></span> Conectado';
-        statusElement.style.display = "inline-flex";
-    } else {
-        statusElement.className = "status-indicator status-offline";
-        statusElement.innerHTML = '<span class="status-dot"></span> Offline';
-        statusElement.style.display = "inline-flex";
-    }
-}
-
-// ==================== [INICIALIZAÇÃO] ====================
-function init() {
-    // ... outro código ...
-    
-    // Verificar conectividade imediatamente
-    testApiConnectivity();
-    
-    // Verificar a cada 30 segundos
-    setInterval(testApiConnectivity, 30000);
-}
-
-// Chame esta função no init()
-function init() {
-    // ... código existente ...
-    testApiConnectivity();
-}
-        
         // ==================== [FUNÇÕES DE INTERFACE] ====================
         function init() {
             setupTabs();
@@ -1388,175 +1316,104 @@ function init() {
                 updateHeaderStats();
             });
             
-            // Registrar Service Worker
-            registerServiceWorker();
+            // Testar conectividade com API
+            testApiConnectivity();
         }
 
-        // ==================== [WEB WORKER] ====================
-        function createStatsWorker() {
-            const workerCode = `
-                self.onmessage = function(e) {
-                    const matches = e.data;
-                    const stats = {};
-                    
-                    matches.forEach(match => {
-                        const league = match.league;
-                        
-                        if (!stats[league]) {
-                            stats[league] = {
-                                totalMatches: 0,
-                                totalGoals: 0,
-                                homeWins: 0,
-                                awayWins: 0,
-                                draws: 0,
-                                over25: 0,
-                                under25: 0
-                            };
-                        }
-                        
-                        const stat = stats[league];
-                        stat.totalMatches++;
-                        stat.totalGoals += match.home_goals + match.away_goals;
-                        
-                        if (match.home_goals > match.away_goals) stat.homeWins++;
-                        else if (match.home_goals < match.away_goals) stat.awayWins++;
-                        else stat.draws++;
-                        
-                        const totalGoals = match.home_goals + match.away_goals;
-                        if (totalGoals > 2.5) stat.over25++;
-                        else stat.under25++;
-                    });
-                    
-                    // Calcular probabilidades
-                    for (const league in stats) {
-                        const s = stats[league];
-                        s.avgGoals = s.totalGoals / s.totalMatches;
-                        s.homeWinProb = s.homeWins / s.totalMatches;
-                        s.awayWinProb = s.awayWins / s.totalMatches;
-                        s.drawProb = s.draws / s.totalMatches;
-                        s.over25Prob = s.over25 / s.totalMatches;
-                        s.under25Prob = s.under25 / s.totalMatches;
+        // ==================== [CONEXÃO COM API] ====================
+        async function testApiConnectivity() {
+            const statusElement = document.getElementById('apiStatus');
+            try {
+                const response = await axios.get(
+                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LIVE_MATCHES}`,
+                    {
+                        headers: { 'x-apisports-key': API_CONFIG.API_KEY },
+                        timeout: API_CONFIG.TIMEOUT
                     }
-                    
-                    postMessage(stats);
-                };
-            `;
-            
-            const blob = new Blob([workerCode], { type: 'application/javascript' });
-            return new Worker(URL.createObjectURL(blob));
-        }
-
-        // ==================== [API COMMUNICATION - PRODUÇÃO] ====================
-        async function fetchDataFromAPI() {
-    try {
-        updateApiStatus(true);
-        dataStore.lastUpdateTime = new Date();
-        
-        const response = await axios.get(
-            API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LIVE_MATCHES,
-            {
-                headers: {
-                    'Authorization': `Bearer ${API_CONFIG.API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                params: {
-                    sport: 'virtual-soccer',
-                    status: 'live'
-                },
-                timeout: API_CONFIG.TIMEOUT
-            }
-        );
-
-        // Verificação crítica de status da resposta
-        if (response.status >= 200 && response.status < 300) {
-            const liveData = response.data.map(match => ({
-                id: match.id,
-                league: match.league.name,
-                home_team: match.teams.home,
-                away_team: match.teams.away,
-                home_goals: match.score.home,
-                away_goals: match.score.away,
-                minute: match.time.elapsed,
-                odds: {
-                    home: match.odds.home_win,
-                    draw: match.odds.draw,
-                    away: match.odds.away_win,
-                    over_25: match.odds.over_25
+                );
+                
+                if (response.data && response.data.response) {
+                    updateApiStatus(true);
+                    showNotification('Conectado à API com sucesso!');
+                } else {
+                    updateApiStatus(false);
+                    showNotification('Resposta inesperada da API', false);
                 }
-            }));
-
-            processLiveMatches(liveData);
-            checkForOpportunities(liveData);
-            showNotification('Dados atualizados com sucesso!');
-        } else {
-            // Trata respostas não bem-sucedidas
-            showNotification(`Erro na API: Status ${response.status}`, false);
-            updateApiStatus(false);
-        }
-    } catch (error) {
-        console.error('Erro na API:', error);
-        showNotification('Falha ao conectar com a API', false);
-        updateApiStatus(false);
-        
-        // Fallback para dados locais
-        if (dataStore.matches.length > 0) {
-            showNotification('Usando dados locais', false);
-            processLiveMatches(dataStore.matches.slice(0, 5));
-        }
-    } finally {
-        updateStatusElements();
-    }
-}
-
-        // ==================== [SERVICE WORKER] ====================
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('Service Worker registrado com sucesso:', registration);
-                    })
-                    .catch(error => {
-                        console.log('Falha ao registrar Service Worker:', error);
-                    });
+            } catch (error) {
+                console.error("Erro detalhado:", error.response?.data || error.message);
+                updateApiStatus(false);
+                showNotification('Falha na conexão: ' + error.message, false);
             }
         }
 
-        // ==================== [FUNÇÕES MODULARIZADAS] ====================
-
-        // Função para mostrar notificação
-       function showNotification(message, isSuccess = true) {
-    const notification = document.getElementById('notification');
-    
-    // Atualização de conteúdo segura
-    notification.innerHTML = `
-        <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
-        <span>${message}</span>
-    `;
-    
-    notification.style.background = isSuccess 
-        ? 'linear-gradient(135deg, #4cc9f0, #4895ef)' 
-        : 'linear-gradient(135deg, #f72585, #b5179e)';
-    
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3500);
-}
-
-        // Função para atualizar status da API
         function updateApiStatus(connected) {
             const statusElement = document.getElementById('apiStatus');
-            if (connected) {
-                statusElement.className = "status-indicator status-online";
-                statusElement.innerHTML = '<span class="status-dot"></span> Conectado';
-            } else {
-                statusElement.className = "status-indicator status-offline";
-                statusElement.innerHTML = '<span class="status-dot"></span> Offline';
+            statusElement.className = connected ? 
+                "status-indicator status-online" : 
+                "status-indicator status-offline";
+            
+            statusElement.innerHTML = connected ? 
+                '<span class="status-dot"></span> Conectado' : 
+                '<span class="status-dot"></span> Offline';
+        }
+
+        // ==================== [API COMMUNICATION] ====================
+        async function fetchDataFromAPI() {
+            try {
+                const response = await axios.get(
+                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LIVE_MATCHES}`,
+                    {
+                        headers: { 'x-apisports-key': API_CONFIG.API_KEY },
+                        timeout: API_CONFIG.TIMEOUT
+                    }
+                );
+                
+                const liveMatches = response.data.response.map(match => ({
+                    league: match.league.name,
+                    home_team: match.teams.home.name,
+                    away_team: match.teams.away.name,
+                    home_goals: match.goals.home,
+                    away_goals: match.goals.away,
+                    minute: match.fixture.status.elapsed,
+                    odds: {
+                        home: match.odds?.home || 0,
+                        draw: match.odds?.draw || 0,
+                        away: match.odds?.away || 0
+                    }
+                }));
+                
+                processLiveMatches(liveMatches);
+                checkForOpportunities(liveMatches);
+                updateApiStatus(true);
+            } catch (error) {
+                console.error("Erro na API:", error);
+                updateApiStatus(false);
+                showNotification('Falha na API. Usando dados simulados', false);
+                loadDemoData(); // Fallback para dados locais
             }
         }
 
-        // Função para configurar abas
+        // ==================== [FUNÇÕES AUXILIARES] ====================
+        function showNotification(message, isSuccess = true) {
+            const notification = document.getElementById('notification');
+            
+            // Atualização de conteúdo segura
+            notification.innerHTML = `
+                <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            notification.style.background = isSuccess 
+                ? 'linear-gradient(135deg, #4cc9f0, #4895ef)' 
+                : 'linear-gradient(135deg, #f72585, #b5179e)';
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3500);
+        }
+
         function setupTabs() {
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
@@ -1573,7 +1430,6 @@ function init() {
             });
         }
 
-        // Função para atualizar filtro de ligas
         function updateLeagueFilter() {
             // Coletar todas as ligas únicas
             const leagues = [...new Set(dataStore.matches.map(match => match.league))];
@@ -1589,7 +1445,6 @@ function init() {
             });
         }
         
-        // Função para renderizar cards de estatísticas
         function renderStatsCards() {
             // Calcular estatísticas gerais
             let totalMatches = dataStore.matches.length;
@@ -1617,7 +1472,6 @@ function init() {
             updateHeaderStats();
         }
 
-        // Função para renderizar tabela de estatísticas
         function renderStatsTable() {
             const statsTable = document.getElementById('statsTable');
             
@@ -1659,7 +1513,6 @@ function init() {
             statsTable.innerHTML = html;
         }
 
-        // Função para renderizar gráfico
         function renderChart() {
             const ctx = document.getElementById('statsChart').getContext('2d');
             
@@ -1781,7 +1634,6 @@ function init() {
             });
         }
 
-        // Função para calcular valor
         function calculateValue() {
             const market = document.getElementById('marketType').value;
             const odd = parseFloat(document.getElementById('oddInput').value);
@@ -1915,8 +1767,8 @@ function init() {
 
         // Conectar a fontes de dados em tempo real
         function connectToLiveData() {
-            // Atualizar a cada 2 minutos
-            setInterval(fetchDataFromAPI, 120000);
+            // Atualizar a cada 5 minutos
+            setInterval(fetchDataFromAPI, 300000);
             
             // Primeira carga imediata
             fetchDataFromAPI();
@@ -2074,7 +1926,7 @@ function init() {
 
         // Atualizar elementos de status
         function updateStatusElements() {
-            document.getElementById('lastUpdate').textContent = dataStore.lastUpdateTime.toLocaleTimeString();
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
             document.getElementById('todayMatches').textContent = dataStore.todayMatchesCount;
             document.getElementById('liveOpportunities').textContent = dataStore.liveOpportunitiesCount;
         }
@@ -2257,7 +2109,7 @@ function init() {
                 // Chamada à API
                 const response = await axios.get(apiEndpoint, {
                     headers: {
-                        'Authorization': `Bearer ${API_CONFIG.API_KEY}`,
+                        'x-apisports-key': API_CONFIG.API_KEY,
                         'Content-Type': 'application/json'
                     },
                     timeout: API_CONFIG.TIMEOUT
@@ -2265,27 +2117,27 @@ function init() {
                 
                 // Processar resultados
                 let html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
-                    <i class="fas fa-check-circle"></i> <strong>${response.data.length} partidas encontradas!</strong>
+                    <i class="fas fa-check-circle"></i> <strong>${response.data.response.length} partidas encontradas!</strong>
                 </p>
                 <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
                 
-                response.data.slice(0, 10).forEach(match => {
+                response.data.response.slice(0, 10).forEach(match => {
                     html += `
                     <div class="match-item">
                         <div class="match-info">
-                            <div class="match-league">${match.league}</div>
+                            <div class="match-league">${match.league.name}</div>
                             <div class="match-teams">
-                                <span>${match.home_team}</span>
-                                <span class="match-score">${match.home_goals}-${match.away_goals}</span>
-                                <span>${match.away_team}</span>
+                                <span>${match.teams.home.name}</span>
+                                <span class="match-score">${match.goals.home}-${match.goals.away}</span>
+                                <span>${match.teams.away.name}</span>
                             </div>
                         </div>
                     </div>`;
                 });
                 
-                if (response.data.length > 10) {
+                if (response.data.response.length > 10) {
                     html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
-                        ... +${response.data.length - 10} partidas
+                        ... +${response.data.response.length - 10} partidas
                     </p>`;
                 }
                 
@@ -2397,32 +2249,7 @@ function init() {
         }
 
         // ==================== [INICIALIZAÇÃO] ====================
-        document.addEventListener('DOMContentLoaded', () => {
-            // Usar Web Worker para cálculos pesados
-            statsWorker = createStatsWorker();
-            
-            statsWorker.onmessage = function(e) {
-                dataStore.leagueStats = e.data;
-                document.dispatchEvent(new CustomEvent('stats-updated'));
-            };
-            
-            // Atualizar estatísticas via worker
-            function updateStatsWithWorker() {
-                statsWorker.postMessage(dataStore.matches);
-            }
-            
-            // Atualizar inicialmente
-            updateStatsWithWorker();
-            
-            // Ouvir eventos de atualização de dados
-            dataStore.saveData = function() {
-                localStorage.setItem('futebolVirtualData', JSON.stringify(this.matches));
-                updateStatsWithWorker();
-            };
-            
-            // Iniciar a aplicação
-            init();
-        });
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
