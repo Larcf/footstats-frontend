@@ -3,2286 +3,1087 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FootStats Pro | Análise de Futebol Virtual</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>SportData Pro - Plataforma de Integração de Dados para Apostas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4361ee;
-            --primary-dark: #3a56d4;
-            --secondary: #7209b7;
-            --success: #4cc9f0;
-            --success-dark: #3ab0d7;
-            --danger: #f72585;
-            --danger-dark: #d71e6e;
-            --warning: #f8961e;
-            --dark: #14213d;
-            --darker: #0d1b2a;
-            --light: #f8f9fa;
-            --gray: #8d99ae;
-            --gradient-primary: linear-gradient(135deg, #4361ee, #3a0ca3);
-            --gradient-secondary: linear-gradient(135deg, #7209b7, #4361ee);
-            --gradient-success: linear-gradient(135deg, #4cc9f0, #4895ef);
-            --gradient-danger: linear-gradient(135deg, #f72585, #b5179e);
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0f172a;
+            --accent: #f59e0b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
         }
         
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
         }
         
         body {
-            background: var(--darker);
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(29, 53, 87, 0.2) 0%, transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(69, 123, 157, 0.15) 0%, transparent 25%);
-            color: var(--light);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f1f5f9;
+            color: var(--secondary);
             line-height: 1.6;
         }
         
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        h1, h2, h3, h4, h5 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
         }
         
-        /* Header Styling */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
         header {
-            text-align: center;
-            padding: 30px 0;
-            margin-bottom: 30px;
-            position: relative;
+            background-color: var(--secondary);
+            color: white;
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
         .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .logo i {
+            color: var(--accent);
+        }
+        
+        nav ul {
+            display: flex;
+            gap: 25px;
+            list-style: none;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+        
+        nav a:hover, nav a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 80px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-content {
+            display: flex;
+            align-items: center;
+            gap: 50px;
             position: relative;
             z-index: 2;
         }
         
-        h1 {
-            font-family: 'Montserrat', sans-serif;
+        .hero-text {
+            flex: 1;
+        }
+        
+        .hero-text h1 {
             font-size: 3.2rem;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, #f72585, #7209b7, #4361ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
-            letter-spacing: -0.5px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            line-height: 1.2;
+            margin-bottom: 20px;
         }
         
-        .subtitle {
-            color: var(--gray);
+        .hero-text p {
             font-size: 1.2rem;
-            max-width: 700px;
-            margin: 0 auto 25px;
-            font-weight: 300;
+            margin-bottom: 30px;
+            max-width: 600px;
+            opacity: 0.9;
         }
         
-        .header-stats {
+        .hero-image {
+            flex: 1;
             display: flex;
             justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
-            margin-top: 20px;
         }
         
-        .stat-badge {
-            background: rgba(67, 97, 238, 0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(67, 97, 238, 0.3);
-            border-radius: 15px;
-            padding: 15px 25px;
-            min-width: 180px;
+        .hero-image img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .btn-accent {
+            background-color: var(--accent);
+            color: var(--secondary);
+            font-weight: 600;
+        }
+        
+        .btn-accent:hover {
+            background-color: #e69008;
+        }
+        
+        /* Features */
+        .features {
+            padding: 100px 0;
+            background-color: white;
+        }
+        
+        .section-title {
             text-align: center;
-            transition: all 0.3s ease;
+            margin-bottom: 60px;
         }
         
-        .stat-badge:hover {
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+        
+        .section-title p {
+            color: var(--gray);
+            max-width: 700px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background-color: var(--light);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+        
+        .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(67, 97, 238, 0.2);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
         
-        .stat-badge i {
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background-color: rgba(37, 99, 235, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .feature-icon i {
             font-size: 2rem;
-            margin-bottom: 10px;
             color: var(--primary);
         }
         
-        .stat-badge .value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin: 5px 0;
-            color: var(--light);
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
         }
         
-        .stat-badge .label {
-            font-size: 0.9rem;
-            color: var(--gray);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        /* Integration */
+        .integration {
+            padding: 100px 0;
+            background-color: #f1f5f9;
         }
         
-        /* Card Styling */
-        .card {
-            background: rgba(20, 33, 61, 0.6);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(67, 97, 238, 0.15);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: var(--gradient-primary);
-        }
-        
-        .card:hover {
-            transform: translateY(-7px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            border-color: rgba(67, 97, 238, 0.3);
-        }
-        
-        .card-title {
+        .integration-content {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #fff;
+            gap: 50px;
         }
         
-        .card-title i {
-            font-size: 1.8rem;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .integration-image {
+            flex: 1;
+            display: flex;
+            justify-content: center;
         }
         
-        /* Grid System */
-        .grid {
+        .integration-image img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .integration-text {
+            flex: 1;
+        }
+        
+        .integration-text h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .integration-text p {
+            margin-bottom: 20px;
+            color: var(--gray);
+        }
+        
+        .providers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 30px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .provider {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .provider img {
+            max-width: 100%;
+            height: 30px;
+            object-fit: contain;
+        }
+        
+        /* Dashboard Preview */
+        .dashboard-preview {
+            padding: 100px 0;
+            background-color: white;
+        }
+        
+        .dashboard-container {
+            background-color: #0f172a;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            color: white;
+            padding: 0 10px;
+        }
+        
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        
+        .dashboard-sidebar {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .dashboard-main {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .dashboard-card {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+        }
+        
+        .dashboard-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+        
+        .match-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .match-teams {
+            font-weight: 500;
+        }
+        
+        .match-odds {
+            font-weight: 700;
+            color: var(--success);
         }
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 10px;
         }
         
         .stat-card {
-            background: rgba(13, 27, 42, 0.7);
-            border-radius: 15px;
-            padding: 25px 20px;
+            background-color: #334155;
+            border-radius: 8px;
+            padding: 15px;
             text-align: center;
-            border: 1px solid rgba(67, 97, 238, 0.1);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--gradient-primary);
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            border-color: rgba(67, 97, 238, 0.3);
         }
         
         .stat-value {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            margin: 15px 0;
-            background: linear-gradient(to right, #4cc9f0, #4895ef);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-family: 'Montserrat', sans-serif;
+            margin: 5px 0;
         }
         
         .stat-label {
-            color: var(--gray);
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 0.9rem;
+            color: #94a3b8;
         }
         
-        /* Buttons */
-        .btn {
-            background: var(--gradient-primary);
+        /* Pricing */
+        .pricing {
+            padding: 100px 0;
+            background-color: #f1f5f9;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .pricing-card {
+            background-color: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            position: relative;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .pricing-header {
+            background-color: var(--secondary);
             color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .pricing-header h3 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .pricing-price {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 20px 0;
+        }
+        
+        .pricing-price span {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+        
+        .pricing-features {
+            padding: 30px;
+        }
+        
+        .pricing-features ul {
+            list-style: none;
+        }
+        
+        .pricing-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 1.05rem;
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
         }
         
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
-            background: var(--gradient-secondary);
+        .pricing-features li i {
+            color: var(--success);
         }
         
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            box-shadow: none;
+        .pricing-cta {
+            padding: 0 30px 30px;
+            text-align: center;
         }
         
-        .btn-outline:hover {
-            background: rgba(67, 97, 238, 0.1);
+        .popular-tag {
+            position: absolute;
+            top: 20px;
+            right: -30px;
+            background-color: var(--accent);
+            color: var(--secondary);
+            padding: 5px 30px;
+            font-weight: 600;
+            transform: rotate(45deg);
         }
         
-        .btn-success {
-            background: var(--gradient-success);
-            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.3);
+        /* FAQ */
+        .faq {
+            padding: 100px 0;
+            background-color: white;
         }
         
-        .btn-success:hover {
-            box-shadow: 0 8px 20px rgba(76, 201, 240, 0.4);
+        .faq-container {
+            max-width: 800px;
+            margin: 0 auto;
         }
         
-        .btn-danger {
-            background: var(--gradient-danger);
-            box-shadow: 0 5px 15px rgba(247, 37, 133, 0.3);
-        }
-        
-        .btn-danger:hover {
-            box-shadow: 0 8px 20px rgba(247, 37, 133, 0.4);
-        }
-        
-        /* Forms */
-        textarea, input, select {
-            width: 100%;
-            padding: 16px 20px;
-            border-radius: 12px;
-            background: rgba(13, 27, 42, 0.7);
-            border: 1px solid rgba(67, 97, 238, 0.15);
-            color: white;
-            font-size: 1rem;
+        .faq-item {
             margin-bottom: 20px;
-            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
         }
         
-        textarea:focus, input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-            background: rgba(13, 27, 42, 0.9);
-        }
-        
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .input-group > * {
-            flex: 1;
-        }
-        
-        /* Results */
-        .value-result {
-            padding: 30px;
-            border-radius: 15px;
-            margin-top: 25px;
-            background: rgba(13, 27, 42, 0.8);
-            border: 1px solid rgba(67, 97, 238, 0.2);
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
-        }
-        
-        .positive {
-            color: #4cc9f0;
-            font-weight: bold;
-        }
-        
-        .negative {
-            color: #f72585;
-        }
-        
-        .opportunity-badge {
-            display: inline-block;
-            padding: 10px 25px;
-            border-radius: 50px;
-            font-weight: bold;
-            margin-top: 15px;
+        .faq-question {
+            background-color: var(--light);
+            padding: 20px;
+            font-weight: 600;
             font-size: 1.1rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-        }
-        
-        .tab {
-            padding: 12px 25px;
-            border-radius: 50px;
-            background: rgba(13, 27, 42, 0.7);
             cursor: pointer;
-            border: 1px solid rgba(67, 97, 238, 0.15);
-            transition: all 0.3s ease;
-            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .tab:hover {
-            background: rgba(67, 97, 238, 0.1);
+        .faq-answer {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background-color: white;
         }
         
-        .tab.active {
-            background: var(--gradient-primary);
-            border-color: transparent;
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
+        .faq-answer.active {
+            padding: 20px;
+            max-height: 500px;
         }
         
         /* Footer */
         footer {
-            text-align: center;
-            padding: 40px 0 30px;
-            color: var(--gray);
-            font-size: 0.95rem;
-            border-top: 1px solid rgba(67, 97, 238, 0.1);
-            margin-top: 20px;
-        }
-        
-        footer p {
-            margin: 5px 0;
-        }
-        
-        /* Notification */
-        .notification {
-            position: fixed;
-            top: 30px;
-            right: 30px;
-            padding: 18px 30px;
-            border-radius: 15px;
-            background: var(--gradient-primary);
+            background-color: var(--secondary);
             color: white;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            transform: translateX(200%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-weight: 500;
-            max-width: 400px;
+            padding: 60px 0 30px;
         }
         
-        .notification.show {
-            transform: translateX(0);
-        }
-        
-        .notification i {
-            font-size: 1.5rem;
-        }
-        
-        /* Scraping Section */
-        .scrape-card {
-            background: rgba(13, 27, 42, 0.7);
-            margin-top: 20px;
-            padding: 25px;
-            border-radius: 15px;
-            border: 1px solid rgba(67, 97, 238, 0.15);
-        }
-        
-        .scrape-results {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 20px;
-            padding: 20px;
-            background: rgba(13, 27, 42, 0.6);
-            border-radius: 15px;
-            border: 1px solid rgba(67, 97, 238, 0.1);
-        }
-        
-        .match-item {
-            padding: 15px;
-            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.3s ease;
-            border-radius: 10px;
-        }
-        
-        .match-item:hover {
-            background: rgba(67, 97, 238, 0.1);
-        }
-        
-        .match-item:last-child {
-            border-bottom: none;
-        }
-        
-        .match-info {
-            flex: 1;
-        }
-        
-        .match-league {
-            font-size: 0.85rem;
-            color: var(--gray);
-            margin-bottom: 5px;
-        }
-        
-        .match-teams {
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .match-score {
-            font-weight: 700;
-            font-size: 1.2rem;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        /* Filters Section */
-        .filters-section {
+        .footer-content {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 25px;
+            gap: 40px;
+            margin-bottom: 40px;
         }
         
-        .filter-card {
-            background: rgba(20, 33, 61, 0.7);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(67, 97, 238, 0.2);
-            transition: all 0.3s ease;
+        .footer-column h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--accent);
         }
         
-        .filter-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            border-color: rgba(67, 97, 238, 0.5);
+        .footer-links {
+            list-style: none;
         }
         
-        .filter-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-            color: #4cc9f0;
-        }
-        
-        .filter-options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .filter-option {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
-        }
-        
-        .market-tag {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            background: rgba(67, 97, 238, 0.15);
-            font-size: 0.85rem;
-            margin-left: 10px;
-        }
-        
-        .opportunity-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 20px;
-        }
-        
-        .opportunity-item {
-            background: rgba(13, 27, 42, 0.7);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid #4cc9f0;
-            transition: all 0.3s ease;
-        }
-        
-        .opportunity-item:hover {
-            transform: translateX(5px);
-            background: rgba(13, 27, 42, 0.9);
-        }
-        
-        .opportunity-header {
-            display: flex;
-            justify-content: space-between;
+        .footer-links li {
             margin-bottom: 10px;
         }
         
-        .opportunity-market {
-            font-weight: 600;
-            color: #4cc9f0;
+        .footer-links a {
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: var(--transition);
         }
         
-        .opportunity-ev {
-            font-weight: 700;
-            background: linear-gradient(to right, #4cc9f0, #4895ef);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .footer-links a:hover {
+            color: white;
         }
         
-        .opportunity-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 0.9rem;
-        }
-        
-        .opportunity-actions {
+        .social-links {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 15px;
+            margin-top: 20px;
         }
         
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        
+        .social-links a:hover {
+            background-color: var(--primary);
+            transform: translateY(-3px);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 0.9rem;
         }
         
         @media (max-width: 768px) {
-            h1 {
+            .hero-content, .integration-content {
+                flex-direction: column;
+            }
+            
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            nav ul {
+                display: none;
+            }
+            
+            .hero-text h1 {
                 font-size: 2.5rem;
             }
-            
-            .header-stats {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .input-group {
-                flex-direction: column;
-            }
-            
-            .stat-badge {
-                width: 100%;
-            }
-            
-            .card-title {
-                font-size: 1.6rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .subtitle {
-                font-size: 1rem;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .tabs {
-                flex-direction: column;
-            }
-        }
-        
-        /* Animation */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        
-        .floating {
-            animation: float 4s ease-in-out infinite;
-        }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(13, 27, 42, 0.5);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
-        }
-        
-        /* Highlights */
-        .highlight-box {
-            background: rgba(67, 97, 238, 0.1);
-            border-left: 4px solid var(--primary);
-            padding: 20px;
-            border-radius: 0 12px 12px 0;
-            margin: 25px 0;
-        }
-        
-        /* Live Match Styling */
-        .live-match {
-            background: rgba(13, 27, 42, 0.7);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid var(--success);
-        }
-        
-        .match-info {
-            flex: 1;
-        }
-        
-        .match-league {
-            font-size: 0.85rem;
-            color: var(--gray);
-            margin-bottom: 5px;
-        }
-        
-        .match-teams {
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .match-score {
-            font-weight: 700;
-            font-size: 1.4rem;
-            margin: 0 15px;
-            min-width: 60px;
-            text-align: center;
-            background: var(--gradient-success);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .live-match-time {
-            background: rgba(67, 97, 238, 0.15);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .live-match-odds {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .odd-value {
-            background: rgba(67, 97, 238, 0.15);
-            padding: 5px 15px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-        
-        /* Alert Styling */
-        .alert-item {
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: rgba(20, 33, 61, 0.7);
-        }
-        
-        .alert-item.positive {
-            border-left: 4px solid var(--success);
-        }
-        
-        .alert-item.negative {
-            border-left: 4px solid var(--danger);
-        }
-        
-        .alert-item i {
-            font-size: 1.5rem;
-        }
-        
-        .alert-item.positive i {
-            color: var(--success);
-        }
-        
-        .alert-item.negative i {
-            color: var(--danger);
-        }
-        
-        .alert-item .content {
-            flex: 1;
-        }
-        
-        .btn-sm {
-            padding: 8px 16px;
-            font-size: 0.9rem;
-        }
-        
-        /* Status Indicator */
-        .status-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-left: 15px;
-        }
-        
-        .status-online {
-            background: rgba(76, 201, 240, 0.15);
-            color: #4cc9f0;
-        }
-        
-        .status-offline {
-            background: rgba(247, 37, 133, 0.15);
-            color: #f72585;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        
-        .status-online .status-dot {
-            background: #4cc9f0;
-            box-shadow: 0 0 8px #4cc9f0;
-        }
-        
-        .status-offline .status-dot {
-            background: #f72585;
-        }
-        
-        /* Button Loading State */
-        .btn.loading {
-            position: relative;
-            pointer-events: none;
-        }
-        
-        .btn.loading::after {
-            content: "";
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            margin: auto;
-            border: 4px solid transparent;
-            border-top-color: #ffffff;
-            border-radius: 50%;
-            animation: button-loading-spinner 1s ease infinite;
-        }
-        
-        @keyframes button-loading-spinner {
-            from { transform: rotate(0turn); }
-            to { transform: rotate(1turn); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-content">
-                <h1><i class="fas fa-futbol floating" style="animation-delay: 0.2s"></i> FootStats Pro</h1>
-                <p class="subtitle">Sistema avançado para identificação de apostas com valor positivo em futebol virtual</p>
-                
-                <div class="header-stats">
-                    <div class="stat-badge">
-                        <i class="fas fa-database"></i>
-                        <div class="value" id="headerMatches">0</div>
-                        <div class="label">Partidas</div>
-                    </div>
-                    <div class="stat-badge">
-                        <i class="fas fa-chart-line"></i>
-                        <div class="value" id="headerProfit">0%</div>
-                        <div class="label">Lucro Potencial</div>
-                    </div>
-                    <div class="stat-badge">
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <i class="fas fa-chart-network"></i>
+                <span>SportData Pro</span>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">Início</a></li>
+                    <li><a href="#features">Recursos</a></li>
+                    <li><a href="#integration">Integração</a></li>
+                    <li><a href="#dashboard">Dashboard</a></li>
+                    <li><a href="#pricing">Planos</a></li>
+                </ul>
+            </nav>
+            <div class="auth-buttons">
+                <a href="#" class="btn btn-outline">Entrar</a>
+                <a href="#" class="btn btn-primary">Cadastrar</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1>Integração de Dados em Tempo Real para Apostas Esportivas</h1>
+                <p>Plataforma profissional para captura, processamento e análise de dados de apostas com baixa latência e alta precisão.</p>
+                <div class="hero-buttons">
+                    <a href="#integration" class="btn btn-accent">Ver Demonstração <i class="fas fa-arrow-right"></i></a>
+                    <a href="#pricing" class="btn btn-outline">Planos Comerciais</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&h=450&q=80" alt="Dashboard de Análise de Dados">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Recursos Avançados</h2>
+                <p>Tecnologia de ponta para integração e processamento de dados esportivos</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
                         <i class="fas fa-bolt"></i>
-                        <div class="value" id="headerValue">0</div>
-                        <div class="label">Oportunidades</div>
                     </div>
+                    <h3>Dados em Tempo Real</h3>
+                    <p>Atualizações a cada 15 segundos com latência inferior a 5s para eventos ao vivo. Suporte para múltiplas fontes simultâneas.</p>
                 </div>
-            </div>
-        </header>
-        
-        <!-- Seção de Status -->
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-plug"></i> Status do Sistema 
-                <span id="apiStatus" class="status-indicator">
-                    <span class="status-dot"></span> Verificando...
-                </span>
-            </h2>
-            <p>Dados atualizados em tempo real usando API profissional</p>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Última Atualização</div>
-                    <div class="stat-value" id="lastUpdate">00:00:00</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Partidas Hoje</div>
-                    <div class="stat-value" id="todayMatches">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Oportunidades</div>
-                    <div class="stat-value" id="liveOpportunities">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Fonte de Dados</div>
-                    <div class="stat-value" style="font-size:1.5rem">API FootStats</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Seção de Dados em Tempo Real -->
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-bolt"></i> Dados em Tempo Real</h2>
-            <div id="liveMatchesContainer">
-                <p style="text-align: center; padding: 30px; color: #8d99ae;">
-                    <i class="fas fa-spinner fa-spin"></i> Conectando a dados em tempo real...
-                </p>
-            </div>
-        </div>
-        
-        <!-- Seção de Alertas -->
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-bell"></i> Alertas de Oportunidades</h2>
-            <div id="alertsContainer">
-                <p style="text-align: center; padding: 30px; color: #8d99ae;">
-                    Aguardando oportunidades...
-                </p>
-            </div>
-        </div>
-        
-        <div class="grid">
-            <div class="card">
-                <h2 class="card-title"><i class="fas fa-database"></i> Gerenciamento de Dados</h2>
-                
-                <div class="tabs">
-                    <div class="tab active" data-tab="import">Importar Dados</div>
-                    <div class="tab" data-tab="manual">Inserir Manualmente</div>
-                    <div class="tab" data-tab="api">API Integration</div>
-                </div>
-                
-                <div class="tab-content active" id="import-tab">
-                    <p>Cole dados históricos em formato CSV:</p>
-                    <textarea id="csvInput" placeholder="Formato: league,home_goals,away_goals
-Virtual Premier,2,1
-Virtual La Liga,3,0
-Brasil Virtual,1,1"></textarea>
-                    <button class="btn" id="importCsvBtn" onclick="parseCSV()">
-                        <i class="fas fa-file-import"></i> Importar CSV
-                    </button>
-                </div>
-                
-                <div class="tab-content" id="manual-tab">
-                    <div class="input-group">
-                        <div>
-                            <label>Liga</label>
-                            <input type="text" id="leagueInput" placeholder="Ex: Virtual Premier">
-                        </div>
-                        <div>
-                            <label>Gols Casa</label>
-                            <input type="number" id="homeInput" placeholder="0">
-                        </div>
-                        <div>
-                            <label>Gols Visitante</label>
-                            <input type="number" id="awayInput" placeholder="0">
-                        </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
                     </div>
-                    <button class="btn" id="addMatchBtn" onclick="addManualData()">
-                        <i class="fas fa-plus"></i> Adicionar Partida
-                    </button>
+                    <h3>Bots Inteligentes</h3>
+                    <p>Crie bots personalizados para monitorar mercados específicos e receber alertas instantâneos via Telegram ou e-mail.</p>
                 </div>
-                
-                <div class="tab-content" id="api-tab">
-                    <div class="scrape-card">
-                        <div style="margin-bottom: 20px;">
-                            <label>Endpoint da API:</label>
-                            <input type="text" id="apiEndpoint" placeholder="https://api.example.com/matches" value="https://v3.football.api-sports.io/fixtures?live=all">
-                        </div>
-                        
-                        <button class="btn btn-success" id="fetchApiBtn" onclick="fetchApiData()" style="margin-top: 15px;">
-                            <i class="fas fa-cloud-download-alt"></i> Buscar Dados da API
-                        </button>
-                        
-                        <div id="apiResults" class="scrape-results">
-                            <p>Os resultados da API aparecerão aqui...</p>
-                        </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
                     </div>
+                    <h3>Histórico Completo</h3>
+                    <p>Armazenamento permanente de dados históricos para análise de tendências e desenvolvimento de estratégias.</p>
                 </div>
-                
-                <div style="margin-top: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
-                    <button class="btn btn-success" onclick="loadDemoData()">
-                        <i class="fas fa-download"></i> Carregar Dados Demo
-                    </button>
-                    <button class="btn btn-outline" onclick="exportCSV()">
-                        <i class="fas fa-file-export"></i> Exportar Dados
-                    </button>
-                    <button class="btn btn-danger" onclick="clearData()">
-                        <i class="fas fa-trash"></i> Limpar Tudo
-                    </button>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2 class="card-title"><i class="fas fa-calculator"></i> Calculadora de Valor</h2>
-                
-                <div class="input-group">
-                    <div>
-                        <label>Selecione a Liga</label>
-                        <select id="leagueFilter">
-                            <option value="all">Todas as Ligas</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Tipo de Aposta</label>
-                        <select id="marketType">
-                            <option value="home">Vitória da Casa</option>
-                            <option value="away">Vitória do Visitante</option>
-                            <option value="draw">Empate</option>
-                            <option value="over">Over 2.5 Gols</option>
-                            <option value="under">Under 2.5 Gols</option>
-                            <option value="over_0.5_ht">Over 0.5 HT</option>
-                            <option value="over_1.5">Over 1.5</option>
-                            <option value="both_teams_score">Ambas Marcam</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div>
-                    <label>Odd Oferecida</label>
-                    <input type="number" id="oddInput" step="0.01" min="1.01" value="2.00" placeholder="Ex: 1.85">
-                </div>
-                
-                <button class="btn" onclick="calculateValue()">
-                    <i class="fas fa-search-dollar"></i> Calcular Valor da Aposta
-                </button>
-                
-                <div id="valueResult" class="value-result hidden">
-                    <!-- Resultado será inserido aqui -->
-                </div>
-                
-                <div class="highlight-box">
-                    <h3><i class="fas fa-lightbulb"></i> Dica Estratégica</h3>
-                    <p>Foque em ligas com mais de 50 partidas históricas. Apostas com EV > 5% têm maior probabilidade de lucro a longo prazo.</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-filter"></i> Filtros de Oportunidades</h2>
-            <p>Identifique automaticamente apostas com alto valor esperado (EV) nestes mercados:</p>
-            
-            <div class="filters-section">
-                <div class="filter-card">
-                    <div class="filter-header">
-                        <i class="fas fa-stopwatch"></i>
-                        <h3>Primeiro Tempo</h3>
-                    </div>
-                    <div class="filter-options">
-                        <div class="filter-option">
-                            <span>Over 0.5 HT <span class="market-tag">Alta Prob</span></span>
-                            <button class="btn" onclick="findOpportunities('over_0.5_ht')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
-                        </div>
-                        <div class="filter-option">
-                            <span>Ambas Marcam HT</span>
-                            <button class="btn" onclick="findOpportunities('both_score_ht')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
-                        </div>
-                        <div class="filter-option">
-                            <span>Resultado 1T <span class="market-tag">Casa</span></span>
-                            <button class="btn" onclick="findOpportunities('home_win_ht')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="filter-card">
-                    <div class="filter-header">
-                        <i class="fas fa-futbol"></i>
-                        <h3>Totais de Gols</h3>
-                    </div>
-                    <div class="filter-options">
-                        <div class="filter-option">
-                            <span>Over 1.5 <span class="market-tag">Alta Prob</span></span>
-                            <button class="btn" onclick="findOpportunities('over_1.5')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
-                        </div>
-                        <div class="filter-option">
-                            <span>Over 3.5</span>
-                            <button class="btn" onclick="findOpportunities('over_3.5')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
-                        </div>
-                        <div class="filter-option">
-                            <span>GG (Ambas Marcam)</span>
-                            <button class="btn" onclick="findOpportunities('both_teams_score')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="filter-card">
-                    <div class="filter-header">
+                <div class="feature-card">
+                    <div class="feature-icon">
                         <i class="fas fa-chart-line"></i>
-                        <h3>Mercados Combinados</h3>
                     </div>
-                    <div class="filter-options">
-                        <div class="filter-option">
-                            <span>Casa & Over 1.5</span>
-                            <button class="btn" onclick="findOpportunities('home_and_over1.5')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
+                    <h3>Análise Preditiva</h3>
+                    <p>Algoritmos avançados para cálculo de probabilidades e identificação de oportunidades baseadas em dados.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <h3>Integração API</h3>
+                    <p>API RESTful para integração com seus sistemas existentes, sites e aplicativos móveis.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Segurança Corporativa</h3>
+                    <p>Criptografia de ponta a ponta, autenticação de dois fatores e conformidade com LGPD para proteção de dados.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Integration -->
+    <section id="integration" class="integration">
+        <div class="container">
+            <div class="section-title">
+                <h2>Implementação Técnica</h2>
+                <p>Como integrar nossa solução ao seu site ou plataforma</p>
+            </div>
+            <div class="integration-content">
+                <div class="integration-text">
+                    <h2>Arquitetura Escalável para Alto Desempenho</h2>
+                    <p>Nossa plataforma utiliza uma arquitetura moderna baseada em microsserviços para garantir alta disponibilidade e escalabilidade sob demanda.</p>
+                    <p>O fluxo de dados é otimizado para baixa latência com processamento paralelo e balanceamento de carga automático.</p>
+                    
+                    <h3 style="margin-top: 30px;">Passo a Passo para Implementação:</h3>
+                    <ol style="margin-left: 20px; margin-top: 15px;">
+                        <li style="margin-bottom: 10px;">Configure as credenciais de API no painel administrativo</li>
+                        <li style="margin-bottom: 10px;">Selecione os provedores de dados desejados</li>
+                        <li style="margin-bottom: 10px;">Defina os eventos e mercados para monitoramento</li>
+                        <li style="margin-bottom: 10px;">Integre nosso SDK ao seu código-fonte</li>
+                        <li>Personalize os webhooks para notificações em tempo real</li>
+                    </ol>
+                    
+                    <div class="providers-grid">
+                        <div class="provider"><i class="fab fa-battle-net fa-2x"></i></div>
+                        <div class="provider"><i class="fas fa-coins fa-2x"></i></div>
+                        <div class="provider"><i class="fas fa-fire fa-2x"></i></div>
+                        <div class="provider"><i class="fas fa-dice fa-2x"></i></div>
+                        <div class="provider"><i class="fab fa-stripe-s fa-2x"></i></div>
+                        <div class="provider"><i class="fab fa-aws fa-2x"></i></div>
+                    </div>
+                    
+                    <a href="#" class="btn btn-primary" style="margin-top: 30px;">Documentação Completa</a>
+                </div>
+                <div class="integration-image">
+                    <img src="https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&w=600&h=450&q=80" alt="Arquitetura de Integração">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview -->
+    <section id="dashboard" class="dashboard-preview">
+        <div class="container">
+            <div class="section-title">
+                <h2>Dashboard Profissional</h2>
+                <p>Interface moderna para análise e gestão de dados esportivos</p>
+            </div>
+            <div class="dashboard-container">
+                <div class="dashboard-header">
+                    <h3>Painel de Controle - Partidas ao Vivo</h3>
+                    <div>Atualizado há 15 segundos</div>
+                </div>
+                <div class="dashboard-content">
+                    <div class="dashboard-sidebar">
+                        <h3>Bots Ativos</h3>
+                        <div class="match-item">
+                            <div>Over 1.5 FIFA</div>
+                            <div class="match-odds">87%</div>
                         </div>
-                        <div class="filter-option">
-                            <span>Ambas Marcam + Over 2.5</span>
-                            <button class="btn" onclick="findOpportunities('btts_over2.5')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
+                        <div class="match-item">
+                            <div>Ambas Marcam NBA</div>
+                            <div class="match-odds">92%</div>
                         </div>
-                        <div class="filter-option">
-                            <span>Resultado Exato <span class="market-tag">1-1, 2-1</span></span>
-                            <button class="btn" onclick="findOpportunities('exact_score')" style="padding: 5px 12px; font-size: 0.9rem;">
-                                Analisar
-                            </button>
+                        <div class="match-item">
+                            <div>Handicap Tênis</div>
+                            <div class="match-odds">78%</div>
+                        </div>
+                        
+                        <h3 style="margin-top: 30px;">Alertas Recentes</h3>
+                        <div class="match-item">
+                            <div>FLA vs PAL</div>
+                            <div class="match-odds">Over 1.5</div>
+                        </div>
+                        <div class="match-item">
+                            <div>LAL vs GSW</div>
+                            <div class="match-odds">+4.5</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-main">
+                        <div class="dashboard-card">
+                            <h3>Eventos em Destaque</h3>
+                            <div class="match-item">
+                                <div class="match-teams">Flamengo vs Palmeiras</div>
+                                <div class="match-odds">1.85</div>
+                            </div>
+                            <div class="match-item">
+                                <div class="match-teams">Lakers vs Warriors</div>
+                                <div class="match-odds">2.10</div>
+                            </div>
+                            <div class="match-item">
+                                <div class="match-teams">Nadal vs Djokovic</div>
+                                <div class="match-odds">1.95</div>
+                            </div>
+                            <div class="match-item">
+                                <div class="match-teams">PSG vs Bayern</div>
+                                <div class="match-odds">2.25</div>
+                            </div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>Probabilidades em Tempo Real</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value">76%</div>
+                                    <div class="stat-label">Over 1.5</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">64%</div>
+                                    <div class="stat-label">Ambas Marcam</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">82%</div>
+                                    <div class="stat-label">Vitória Casa</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">43%</div>
+                                    <div class="stat-label">Empate</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>Desempenho Estratégias</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value">72%</div>
+                                    <div class="stat-label">Taxa Acerto</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">18.3%</div>
+                                    <div class="stat-label">ROI</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>Mercados Populares</h3>
+                            <div class="match-item">
+                                <div>Over/Under</div>
+                                <div>+24.5%</div>
+                            </div>
+                            <div class="match-item">
+                                <div>Handicap</div>
+                                <div>+18.2%</div>
+                            </div>
+                            <div class="match-item">
+                                <div>Ambas Marcam</div>
+                                <div>+12.7%</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="opportunity-list" id="opportunityResults">
-                <p style="text-align: center; padding: 30px; color: #8d99ae;">
-                    <i class="fas fa-search"></i> Use os filtros acima para identificar oportunidades de apostas
-                </p>
-            </div>
         </div>
-        
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-chart-bar"></i> Análise Estatística</h2>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Total de Partidas</div>
-                    <div class="stat-value" id="totalMatches">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Média de Gols</div>
-                    <div class="stat-value" id="avgGoals">0.00</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Vitórias da Casa</div>
-                    <div class="stat-value" id="homeWinPct">0%</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Over 2.5 Gols</div>
-                    <div class="stat-value" id="over25Pct">0%</div>
-                </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-title">
+                <h2>Planos Comerciais</h2>
+                <p>Soluções para todos os tamanhos de negócio</p>
             </div>
-            
-            <div style="margin-top: 40px; height: 400px;">
-                <canvas id="statsChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-table"></i> Estatísticas por Liga</h2>
-            <div id="statsTable"></div>
-        </div>
-        
-        <div class="card">
-            <h2 class="card-title"><i class="fas fa-graduation-cap"></i> Guia de Estratégia</h2>
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-top: 20px;">
-                <div class="highlight-box">
-                    <h3><i class="fas fa-coins"></i> Gestão de Banca</h3>
-                    <p>Nunca aposte mais que 2% do seu bankroll em uma única aposta. Use o método Kelly:</p>
-                    <p><code>Stake = (Odd × Probabilidade - 1) / (Odd - 1)</code></p>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Starter</h3>
+                        <p>Ideal para pequenos sites e testes</p>
+                        <div class="pricing-price">R$79,90<span>/mês</span></div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li><i class="fas fa-check"></i> 2 Fontes de dados</li>
+                            <li><i class="fas fa-check"></i> Atualização a cada 60s</li>
+                            <li><i class="fas fa-check"></i> 1 Bot personalizado</li>
+                            <li><i class="fas fa-check"></i> 7 dias de histórico</li>
+                            <li><i class="fas fa-check"></i> Suporte por e-mail</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-cta">
+                        <a href="#" class="btn btn-outline">Começar Agora</a>
+                    </div>
                 </div>
                 
-                <div class="highlight-box">
-                    <h3><i class="fas fa-filter"></i> Filtros Eficientes</h3>
-                    <p>Foque em mercados com altas probabilidades:</p>
-                    <ul style="padding-left: 20px; margin-top: 10px;">
-                        <li>Over 0.5 HT (70-85%)</li>
-                        <li>Over 1.5 (65-80%)</li>
-                        <li>Vitória da casa (50-65%)</li>
+                <div class="pricing-card">
+                    <div class="popular-tag">POPULAR</div>
+                    <div class="pricing-header" style="background-color: var(--primary);">
+                        <h3>Professional</h3>
+                        <p>Para negócios em crescimento</p>
+                        <div class="pricing-price">R$149,90<span>/mês</span></div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li><i class="fas fa-check"></i> 5 Fontes de dados</li>
+                            <li><i class="fas fa-check"></i> Atualização a cada 30s</li>
+                            <li><i class="fas fa-check"></i> 3 Bots personalizados</li>
+                            <li><i class="fas fa-check"></i> 30 dias de histórico</li>
+                            <li><i class="fas fa-check"></i> API completa</li>
+                            <li><i class="fas fa-check"></i> Suporte prioritário</li>
+                            <li><i class="fas fa-check"></i> Dashboard avançado</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-cta">
+                        <a href="#" class="btn btn-primary">Escolher Plano</a>
+                    </div>
+                </div>
+                
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Enterprise</h3>
+                        <p>Solução completa para grandes negócios</p>
+                        <div class="pricing-price">Sob Consulta</div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li><i class="fas fa-check"></i> Fontes ilimitadas</li>
+                            <li><i class="fas fa-check"></i> Atualização em tempo real</li>
+                            <li><i class="fas fa-check"></i> Bots ilimitados</li>
+                            <li><i class="fas fa-check"></i> Histórico completo</li>
+                            <li><i class="fas fa-check"></i> API premium</li>
+                            <li><i class="fas fa-check"></i> Suporte 24/7</li>
+                            <li><i class="fas fa-check"></i> White label</li>
+                            <li><i class="fas fa-check"></i> Servidor dedicado</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-cta">
+                        <a href="#" class="btn btn-outline">Fale Conosco</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq">
+        <div class="container">
+            <div class="section-title">
+                <h2>Perguntas Frequentes</h2>
+                <p>Tire suas dúvidas sobre nossa plataforma</p>
+            </div>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Como é feita a integração com as plataformas de apostas?
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Utilizamos APIs oficiais quando disponíveis e técnicas avançadas de web scraping com respeito aos termos de serviço. Nossa integração é feita através de conexões seguras e criptografadas, garantindo estabilidade e atualização contínua dos dados.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Qual a latência máxima para dados ao vivo?
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Garantimos latência máxima de 5 segundos para eventos ao vivo em nossos planos Professional e Enterprise. No plano Starter, a atualização ocorre a cada 60 segundos.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Posso integrar os dados ao meu sistema existente?
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim, oferecemos API RESTful completa com documentação detalhada para integração com qualquer sistema. Suportamos formatos JSON e XML, com autenticação via OAuth2.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        Como é calculada a probabilidade dos eventos?
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Nossos algoritmos analisam dados históricos, desempenho recente, condições de jogo e odds de múltiplas fontes para calcular probabilidades com precisão superior a 92% para os principais mercados.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>SportData Pro</h3>
+                    <p>Soluções profissionais de integração de dados para o mercado de apostas esportivas.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Recursos</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Documentação</a></li>
+                        <li><a href="#">API Explorer</a></li>
+                        <li><a href="#">SDKs</a></li>
+                        <li><a href="#">Status do Sistema</a></li>
+                        <li><a href="#">Blog</a></li>
                     </ul>
                 </div>
                 
-                <div class="highlight-box">
-                    <h3><i class="fas fa-exclamation-triangle"></i> Gerenciamento de Risco</h3>
-                    <p>Diversifique suas apostas em diferentes mercados e ligas. Priorize oportunidades com EV > 5% e odds acima de 1.60.</p>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Termos de Uso</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">LGPD</a></li>
+                        <li><a href="#">Cookies</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Contato</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-envelope"></i> contato@sportdatapro.com</li>
+                        <li><i class="fas fa-phone"></i> +55 (11) 99999-9999</li>
+                        <li><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</li>
+                    </ul>
                 </div>
             </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 SportData Pro. Todos os direitos reservados. CNPJ: 12.345.678/0001-00</p>
+            </div>
         </div>
-        
-        <footer>
-            <p>⚠️ Aviso: Apostas envolvem risco de perda financeira. Use este sistema como ferramenta auxiliar.</p>
-            <p>© 2023 FootStats Pro | Versão Profissional</p>
-        </footer>
-    </div>
-    
-    <div class="notification" id="notification">
-        <i class="fas fa-check-circle"></i>
-        <span>Dados carregados com sucesso!</span>
-    </div>
+    </footer>
 
     <script>
-        // ==================== [CONFIGURAÇÕES DE PRODUÇÃO] ====================
-        const API_CONFIG = {
-            BASE_URL: 'https://v3.football.api-sports.io',
-            ENDPOINTS: {
-                TODAY_MATCHES: '/fixtures?league=519&date=' // Endpoint corrigido com parâmetro de data
-            },
-            API_KEY: '9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p', // Chave gratuita da API-Sports
-            TIMEOUT: 10000  // Timeout de 10 segundos
-        };
-
-        // ==================== [ESTRUTURA DE DADOS] ====================
-        class DataStore {
-            constructor() {
-                this.matches = JSON.parse(localStorage.getItem('futebolVirtualData')) || [];
-                this.leagueStats = {};
-                this.todayMatchesCount = 0;
-                this.liveOpportunitiesCount = 0;
-                this.lastUpdateTime = new Date();
-            }
-            
-            saveData() {
-                localStorage.setItem('futebolVirtualData', JSON.stringify(this.matches));
-                this.calculateStatistics();
-            }
-            
-            addMatch(match) {
-                this.matches.push(match);
-                this.saveData();
-            }
-            
-            clearData() {
-                this.matches = [];
-                this.saveData();
-            }
-            
-            calculateStatistics() {
-                this.leagueStats = {};
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const answer = question.nextElementSibling;
+                answer.classList.toggle('active');
                 
-                this.matches.forEach(match => {
-                    const league = match.league;
-                    
-                    if (!this.leagueStats[league]) {
-                        this.leagueStats[league] = {
-                            totalMatches: 0,
-                            totalGoals: 0,
-                            homeWins: 0,
-                            awayWins: 0,
-                            draws: 0,
-                            over25: 0,
-                            under25: 0
-                        };
-                    }
-                    
-                    const stats = this.leagueStats[league];
-                    stats.totalMatches++;
-                    stats.totalGoals += match.home_goals + match.away_goals;
-                    
-                    if (match.home_goals > match.away_goals) stats.homeWins++;
-                    else if (match.home_goals < match.away_goals) stats.awayWins++;
-                    else stats.draws++;
-                    
-                    const totalGoals = match.home_goals + match.away_goals;
-                    if (totalGoals > 2.5) stats.over25++;
-                    else stats.under25++;
-                });
-                
-                // Calcular probabilidades
-                for (const league in this.leagueStats) {
-                    const s = this.leagueStats[league];
-                    s.avgGoals = s.totalGoals / s.totalMatches;
-                    s.homeWinProb = s.homeWins / s.totalMatches;
-                    s.awayWinProb = s.awayWins / s.totalMatches;
-                    s.drawProb = s.draws / s.totalMatches;
-                    s.over25Prob = s.over25 / s.totalMatches;
-                    s.under25Prob = s.under25 / s.totalMatches;
-                }
-                
-                // Disparar evento de atualização
-                document.dispatchEvent(new CustomEvent('stats-updated'));
-            }
-        }
-
-        // ==================== [INSTÂNCIA GLOBAL] ====================
-        const dataStore = new DataStore();
-        let chartInstance = null;
-
-        // ==================== [FUNÇÕES DE INTERFACE] ====================
-        function init() {
-            setupTabs();
-            updateLeagueFilter();
-            renderStatsCards();
-            renderStatsTable();
-            updateHeaderStats();
-            updateStatusElements();
-            
-            // Conectar a dados em tempo real
-            connectToLiveData();
-            
-            // Registrar event listeners
-            document.addEventListener('stats-updated', () => {
-                renderStatsCards();
-                renderStatsTable();
-                renderChart();
-                updateHeaderStats();
-            });
-            
-            // Testar conectividade com API
-            testApiConnectivity();
-        }
-
-        // ==================== [CONEXÃO COM API] ====================
-        async function testApiConnectivity() {
-            const statusElement = document.getElementById('apiStatus');
-            try {
-                const today = new Date();
-                const dateString = today.toISOString().split('T')[0];
-                
-                const response = await axios.get(
-                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TODAY_MATCHES}${dateString}`,
-                    {
-                        headers: { 'x-apisports-key': API_CONFIG.API_KEY },
-                        timeout: API_CONFIG.TIMEOUT
-                    }
-                );
-                
-                if (response.data && response.data.response) {
-                    updateApiStatus(true);
-                    showNotification('Conectado à API com sucesso!');
+                const icon = question.querySelector('i');
+                if (answer.classList.contains('active')) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
                 } else {
-                    updateApiStatus(false);
-                    showNotification('Resposta inesperada da API', false);
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
                 }
-            } catch (error) {
-                console.error("Erro detalhado:", error.response?.data || error.message);
-                updateApiStatus(false);
-                showNotification('Falha na conexão: ' + error.message, false);
-            }
-        }
-
-        function updateApiStatus(connected) {
-            const statusElement = document.getElementById('apiStatus');
-            statusElement.className = connected ? 
-                "status-indicator status-online" : 
-                "status-indicator status-offline";
-            
-            statusElement.innerHTML = connected ? 
-                '<span class="status-dot"></span> Conectado' : 
-                '<span class="status-dot"></span> Offline';
-        }
-
-        // ==================== [API COMMUNICATION - CORRIGIDA] ====================
-        async function fetchDataFromAPI() {
-            try {
-                // Obter data atual no formato YYYY-MM-DD
-                const today = new Date();
-                const dateString = today.toISOString().split('T')[0];
-                
-                const response = await axios.get(
-                    `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TODAY_MATCHES}${dateString}`,
-                    {
-                        headers: { 'x-apisports-key': API_CONFIG.API_KEY },
-                        timeout: API_CONFIG.TIMEOUT
-                    }
-                );
-                
-                // Verificar se há dados
-                if (response.data && response.data.response) {
-                    const matches = response.data.response.map(match => ({
-                        id: match.fixture.id,
-                        league: match.league.name,
-                        home_team: match.teams.home.name,
-                        away_team: match.teams.away.name,
-                        home_goals: match.goals.home,
-                        away_goals: match.goals.away,
-                        minute: match.fixture.status.elapsed,
-                        status: match.fixture.status.short,
-                        odds: {
-                            home: match.bookmakers[0]?.bets[0]?.values[0]?.odd || 0,
-                            draw: match.bookmakers[0]?.bets[0]?.values[1]?.odd || 0,
-                            away: match.bookmakers[0]?.bets[0]?.values[2]?.odd || 0,
-                            over_25: match.bookmakers[0]?.bets[1]?.values[0]?.odd || 0
-                        }
-                    }));
-                    
-                    // Filtrar apenas partidas que ainda não terminaram
-                    const liveMatches = matches.filter(match => 
-                        match.status !== 'FT' && match.status !== 'AOT' && match.status !== 'PST'
-                    );
-                    
-                    processLiveMatches(liveMatches);
-                    checkForOpportunities(liveMatches);
-                    updateApiStatus(true);
-                } else {
-                    processLiveMatches([]);
-                    showNotification('Nenhuma partida encontrada para hoje', false);
-                }
-            } catch (error) {
-                console.error("Erro na API:", error);
-                updateApiStatus(false);
-                showNotification('Falha na API. Usando dados simulados', false);
-                loadDemoData(); // Fallback para dados locais
-            }
-        }
-
-        // ==================== [FUNÇÕES AUXILIARES] ====================
-        function showNotification(message, isSuccess = true) {
-            const notification = document.getElementById('notification');
-            
-            // Atualização de conteúdo segura
-            notification.innerHTML = `
-                <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
-                <span>${message}</span>
-            `;
-            
-            notification.style.background = isSuccess 
-                ? 'linear-gradient(135deg, #4cc9f0, #4895ef)' 
-                : 'linear-gradient(135deg, #f72585, #b5179e)';
-            
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3500);
-        }
-
-        function setupTabs() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    // Remover classe ativa de todas as abas
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-                    
-                    // Adicionar classe ativa à aba clicada
-                    tab.classList.add('active');
-                    const tabId = tab.getAttribute('data-tab');
-                    document.getElementById(`${tabId}-tab`).classList.add('active');
-                });
             });
-        }
-
-        function updateLeagueFilter() {
-            // Coletar todas as ligas únicas
-            const leagues = [...new Set(dataStore.matches.map(match => match.league))];
-            
-            // Limpar e adicionar opções
-            const leagueFilter = document.getElementById('leagueFilter');
-            leagueFilter.innerHTML = '<option value="all">Todas as Ligas</option>';
-            leagues.forEach(league => {
-                const option = document.createElement('option');
-                option.value = league;
-                option.textContent = league;
-                leagueFilter.appendChild(option);
-            });
-        }
+        });
         
-        function renderStatsCards() {
-            // Calcular estatísticas gerais
-            let totalMatches = dataStore.matches.length;
-            let totalGoals = 0;
-            let homeWins = 0;
-            let over25 = 0;
-            
-            dataStore.matches.forEach(match => {
-                totalGoals += match.home_goals + match.away_goals;
-                if (match.home_goals > match.away_goals) homeWins++;
-                if (match.home_goals + match.away_goals > 2.5) over25++;
-            });
-            
-            const avgGoals = totalMatches > 0 ? (totalGoals / totalMatches).toFixed(2) : 0;
-            const homeWinPct = totalMatches > 0 ? ((homeWins / totalMatches) * 100).toFixed(1) : 0;
-            const over25Pct = totalMatches > 0 ? ((over25 / totalMatches) * 100).toFixed(1) : 0;
-            
-            // Atualizar DOM
-            document.getElementById('totalMatches').textContent = totalMatches;
-            document.getElementById('avgGoals').textContent = avgGoals;
-            document.getElementById('homeWinPct').textContent = `${homeWinPct}%`;
-            document.getElementById('over25Pct').textContent = `${over25Pct}%`;
-            
-            // Atualizar header
-            updateHeaderStats();
-        }
-
-        function renderStatsTable() {
-            const statsTable = document.getElementById('statsTable');
-            
-            if (Object.keys(dataStore.leagueStats).length === 0) {
-                statsTable.innerHTML = '<p class="stat-card" style="text-align:center; padding:30px;">Nenhum dado disponível. Importe dados para começar.</p>';
-                return;
-            }
-            
-            let html = `<table style="width:100%; border-collapse:separate; border-spacing:0 10px;">
-                <thead>
-                    <tr>
-                        <th style="padding:15px; text-align:left; background:rgba(67, 97, 238, 0.2);">Liga</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Partidas</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Média Gols</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Casa</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Fora</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Empate</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Over 2.5</th>
-                        <th style="padding:15px; background:rgba(67, 97, 238, 0.2);">Under 2.5</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-            
-            for (const league in dataStore.leagueStats) {
-                const s = dataStore.leagueStats[league];
-                html += `<tr style="background: rgba(20, 33, 61, 0.7);">
-                    <td style="padding:15px; text-align:left; border-left: 4px solid #4361ee;">${league}</td>
-                    <td style="padding:15px; text-align:center;">${s.totalMatches}</td>
-                    <td style="padding:15px; text-align:center; font-weight:bold;">${s.avgGoals.toFixed(2)}</td>
-                    <td style="padding:15px; text-align:center; color: #4cc9f0;">${(s.homeWinProb * 100).toFixed(1)}%</td>
-                    <td style="padding:15px; text-align:center; color: #f72585;">${(s.awayWinProb * 100).toFixed(1)}%</td>
-                    <td style="padding:15px; text-align:center; color: #f8961e;">${(s.drawProb * 100).toFixed(1)}%</td>
-                    <td style="padding:15px; text-align:center; color: #4cc9f0;">${(s.over25Prob * 100).toFixed(1)}%</td>
-                    <td style="padding:15px; text-align:center; color: #f72585;">${(s.under25Prob * 100).toFixed(1)}%</td>
-                </tr>`;
-            }
-            
-            html += `</tbody></table>`;
-            statsTable.innerHTML = html;
-        }
-
-        function renderChart() {
-            const ctx = document.getElementById('statsChart').getContext('2d');
-            
-            // Destruir instância anterior do gráfico
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-            
-            const leagues = Object.keys(dataStore.leagueStats);
-            if (leagues.length === 0) return;
-            
-            const datasets = [
-                {
-                    label: 'Vitória da Casa',
-                    data: leagues.map(l => dataStore.leagueStats[l].homeWinProb * 100),
-                    backgroundColor: 'rgba(76, 201, 240, 0.7)',
-                    borderColor: 'rgba(76, 201, 240, 1)',
-                    borderWidth: 2,
-                    borderRadius: 5
-                },
-                {
-                    label: 'Vitória do Visitante',
-                    data: leagues.map(l => dataStore.leagueStats[l].awayWinProb * 100),
-                    backgroundColor: 'rgba(247, 37, 133, 0.7)',
-                    borderColor: 'rgba(247, 37, 133, 1)',
-                    borderWidth: 2,
-                    borderRadius: 5
-                },
-                {
-                    label: 'Over 2.5 Gols',
-                    data: leagues.map(l => dataStore.leagueStats[l].over25Prob * 100),
-                    backgroundColor: 'rgba(114, 9, 183, 0.7)',
-                    borderColor: 'rgba(114, 9, 183, 1)',
-                    borderWidth: 2,
-                    borderRadius: 5
-                }
-            ];
-            
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: leagues,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Probabilidade (%)',
-                                color: '#8d99ae',
-                                font: {
-                                    size: 14,
-                                    weight: 'bold'
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#8d99ae',
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#8d99ae',
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#f8f9fa',
-                                font: {
-                                    size: 13,
-                                    weight: '500'
-                                }
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Desempenho por Liga',
-                            color: '#f8f9fa',
-                            font: {
-                                size: 18,
-                                weight: 'bold'
-                            },
-                            padding: {
-                                bottom: 20
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(20, 33, 61, 0.9)',
-                            titleColor: '#f8f9fa',
-                            bodyColor: '#f8f9fa',
-                            borderColor: '#4361ee',
-                            borderWidth: 1,
-                            padding: 12,
-                            cornerRadius: 10
-                        }
-                    },
-                    animation: {
-                        duration: 1500,
-                        easing: 'easeOutQuart'
-                    }
-                }
-            });
-        }
-
-        function calculateValue() {
-            const market = document.getElementById('marketType').value;
-            const odd = parseFloat(document.getElementById('oddInput').value);
-            const selectedLeague = document.getElementById('leagueFilter').value;
-            
-            if (isNaN(odd)) {
-                showNotification('Insira uma odd válida', false);
-                return;
-            }
-            
-            const valueResult = document.getElementById('valueResult');
-            valueResult.classList.remove('hidden');
-            
-            // Se "Todas as Ligas" for selecionada, analisar todas
-            const leagues = selectedLeague === 'all' 
-                ? Object.keys(dataStore.leagueStats) 
-                : [selectedLeague];
-            
-            let bestLeague = "";
-            let bestValue = -100;
-            let bestProb = 0;
-            
-            leagues.forEach(league => {
-                let prob = 0;
-                switch(market) {
-                    case 'home': prob = dataStore.leagueStats[league].homeWinProb; break;
-                    case 'away': prob = dataStore.leagueStats[league].awayWinProb; break;
-                    case 'draw': prob = dataStore.leagueStats[league].drawProb; break;
-                    case 'over': prob = dataStore.leagueStats[league].over25Prob; break;
-                    case 'under': prob = dataStore.leagueStats[league].under25Prob; break;
-                    // Para novos mercados, usar valores médios (em sistema real viria de cálculo)
-                    case 'over_0.5_ht': prob = 0.75; break;
-                    case 'over_1.5': prob = 0.68; break;
-                    case 'both_teams_score': prob = 0.60; break;
-                }
-                
-                const expectedValue = (prob * odd - 1) * 100;
-                
-                if (expectedValue > bestValue) {
-                    bestValue = expectedValue;
-                    bestLeague = league;
-                    bestProb = prob;
-                }
-            });
-            
-            // Determinar tipo de mercado para exibição
-            let marketName = '';
-            switch(market) {
-                case 'home': marketName = 'Vitória da Casa'; break;
-                case 'away': marketName = 'Vitória do Visitante'; break;
-                case 'draw': marketName = 'Empate'; break;
-                case 'over': marketName = 'Over 2.5 Gols'; break;
-                case 'under': marketName = 'Under 2.5 Gols'; break;
-                case 'over_0.5_ht': marketName = 'Over 0.5 HT'; break;
-                case 'over_1.5': marketName = 'Over 1.5'; break;
-                case 'both_teams_score': marketName = 'Ambas Marcam'; break;
-            }
-            
-            let result = `
-                <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-                    <div style="font-size: 3rem; background: linear-gradient(135deg, #4361ee, #7209b7); 
-                         -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <h3 style="font-size: 1.8rem; margin-bottom: 5px;">Análise de Valor</h3>
-                        <p style="color: #8d99ae;">Resultado da simulação para sua aposta</p>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px;">
-                    <div class="stat-card" style="text-align: left; padding: 20px;">
-                        <div class="stat-label">Mercado</div>
-                        <div class="stat-value" style="font-size: 1.8rem;">${marketName}</div>
-                    </div>
-                    
-                    <div class="stat-card" style="text-align: left; padding: 20px;">
-                        <div class="stat-label">Liga Recomendada</div>
-                        <div class="stat-value" style="font-size: 1.8rem;">${bestLeague}</div>
-                    </div>
-                    
-                    <div class="stat-card" style="text-align: left; padding: 20px;">
-                        <div class="stat-label">Valor Esperado (EV)</div>
-                        <div class="stat-value" style="font-size: 1.8rem; ${bestValue > 0 ? 'color: #4cc9f0;' : 'color: #f72585;'}">
-                            ${bestValue > 0 ? '+' : ''}${bestValue.toFixed(1)}%
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            if (bestValue > 0) {
-                result += `
-                    <div style="background: rgba(76, 201, 240, 0.15); padding: 20px; border-radius: 15px; border-left: 4px solid #4cc9f0;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                            <i class="fas fa-check-circle" style="font-size: 2rem; color: #4cc9f0;"></i>
-                            <h3 style="font-size: 1.4rem;">OPORTUNIDADE POSITIVA</h3>
-                        </div>
-                        <p><strong>Recomendação:</strong> Esta aposta tem valor esperado positivo. 
-                        Aposte entre 1-2% do seu bankroll.</p>
-                        <p style="margin-top: 10px;"><strong>Detalhes:</strong></p>
-                        <ul style="padding-left: 20px; margin-top: 10px;">
-                            <li>Probabilidade real: <strong>${(bestProb * 100).toFixed(1)}%</strong></li>
-                            <li>Odd oferecida: <strong>${odd.toFixed(2)}</strong></li>
-                            <li>Lucro esperado: <strong>${(bestProb * odd * 100 - 100).toFixed(1)}%</strong></li>
-                        </ul>
-                    </div>
-                `;
-            } else {
-                result += `
-                    <div style="background: rgba(247, 37, 133, 0.15); padding: 20px; border-radius: 15px; border-left: 4px solid #f72585;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f72585;"></i>
-                            <h3 style="font-size: 1.4rem;">SEM VALOR</h3>
-                        </div>
-                        <p><strong>Recomendação:</strong> Esta aposta não apresenta valor esperado positivo. 
-                        Evite apostar ou procure outras oportunidades.</p>
-                        <p style="margin-top: 10px;"><strong>Detalhes:</strong></p>
-                        <ul style="padding-left: 20px; margin-top: 10px;">
-                            <li>Probabilidade real: <strong>${(bestProb * 100).toFixed(1)}%</strong></li>
-                            <li>Odd oferecida: <strong>${odd.toFixed(2)}</strong></li>
-                            <li>Perda esperada: <strong>${(100 - bestProb * odd * 100).toFixed(1)}%</strong></li>
-                        </ul>
-                    </div>
-                `;
-            }
-            
-            valueResult.innerHTML = result;
-        }
-
-        // ==================== [FUNÇÕES ATUALIZADAS] ====================
-
-        // Conectar a fontes de dados em tempo real
-        function connectToLiveData() {
-            // Atualizar a cada 5 minutos
-            setInterval(fetchDataFromAPI, 300000);
-            
-            // Primeira carga imediata
-            fetchDataFromAPI();
-        }
-
-        // Processar partidas ao vivo
-        function processLiveMatches(liveData) {
-            dataStore.todayMatchesCount = liveData.length;
-            renderLiveMatches(liveData);
-            updateStatusElements();
-        }
-
-        // Renderizar partidas ao vivo - CORRIGIDA
-        function renderLiveMatches(liveData) {
-            const container = document.getElementById('liveMatchesContainer');
-            
-            if (liveData.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 30px; color: #8d99ae;">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3 style="margin: 15px 0;">Nenhuma partida ao vivo no momento</h3>
-                        <p>Próximas partidas serão exibidas aqui</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '';
-            liveData.forEach(match => {
-                // Determinar cor do marcador de tempo
-                let timeColor = '#4cc9f0';
-                if (match.minute > 80) timeColor = '#f72585';
-                else if (match.minute > 40) timeColor = '#f8961e';
-                
-                html += `
-                <div class="live-match">
-                    <div class="match-info">
-                        <div class="match-league">${match.league}</div>
-                        <div class="match-teams">
-                            <span>${match.home_team}</span>
-                            <span class="match-score">${match.home_goals}-${match.away_goals}</span>
-                            <span>${match.away_team}</span>
-                        </div>
-                    </div>
-                    <div class="live-match-time" style="background: ${timeColor}22; color: ${timeColor};">
-                        ${match.minute || '0'}'
-                    </div>
-                    <div class="live-match-odds">
-                        <span class="odd-value">${match.odds.home.toFixed(2)}</span>
-                        <span class="odd-value">${match.odds.draw.toFixed(2)}</span>
-                        <span class="odd-value">${match.odds.away.toFixed(2)}</span>
-                    </div>
-                </div>`;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // Verificar oportunidades
-        function checkForOpportunities(liveData) {
-            const newAlerts = [];
-            dataStore.liveOpportunitiesCount = 0;
-            
-            liveData.forEach(match => {
-                // Estratégia 1: Over 2.5 com odds altas
-                if (match.odds?.over_25 > 1.8 && (match.home_goals + match.away_goals) < 3) {
-                    const probability = calculateOver25Probability(match);
-                    const ev = calculateEV(match.odds.over_25, probability);
-                    
-                    if (ev > 5) {
-                        newAlerts.push({
-                            match,
-                            market: 'over_25',
-                            odds: match.odds.over_25,
-                            probability,
-                            ev
-                        });
-                        dataStore.liveOpportunitiesCount++;
-                    }
-                }
-                
-                // Estratégia 2: Vitória da casa com desequilíbrio
-                if (match.odds?.home > 2.0 && match.home_goals > match.away_goals) {
-                    const probability = calculateHomeWinProbability(match);
-                    const ev = calculateEV(match.odds.home, probability);
-                    
-                    if (ev > 5) {
-                        newAlerts.push({
-                            match,
-                            market: 'home_win',
-                            odds: match.odds.home,
-                            probability,
-                            ev
-                        });
-                        dataStore.liveOpportunitiesCount++;
-                    }
-                }
-            });
-            
-            if (newAlerts.length > 0) {
-                renderAlerts(newAlerts);
-            }
-            
-            updateStatusElements();
-        }
-
-        // Funções auxiliares para cálculos
-        function calculateOver25Probability(match) {
-            // Lógica simplificada baseada em dados históricos
-            const leagueAvg = getLeagueAverage(match.league);
-            return leagueAvg.over25_rate * 0.9 + (match.minute > 60 ? 0.1 : 0);
-        }
-
-        function calculateHomeWinProbability(match) {
-            const leagueAvg = getLeagueAverage(match.league);
-            const goalDiff = match.home_goals - match.away_goals;
-            return leagueAvg.home_win_rate + (goalDiff > 0 ? 0.15 : -0.15);
-        }
-
-        function calculateEV(odds, probability) {
-            return (odds * probability - 1) * 100;
-        }
-
-        function getLeagueAverage(leagueName) {
-            // Valores padrão
-            const defaults = {
-                over25_rate: 0.65,
-                home_win_rate: 0.50
-            };
-            
-            // Tentar encontrar dados reais
-            if (dataStore.leagueStats[leagueName]) {
-                return {
-                    over25_rate: dataStore.leagueStats[leagueName].over25Prob,
-                    home_win_rate: dataStore.leagueStats[leagueName].homeWinProb
-                };
-            }
-            
-            return defaults;
-        }
-
-        // Renderizar alertas
-        function renderAlerts(alerts) {
-            const container = document.getElementById('alertsContainer');
-            let html = '';
-            
-            alerts.forEach(alert => {
-                html += `
-                    <div class="alert-item positive">
-                        <i class="fas fa-bolt"></i>
-                        <div class="content">
-                            <strong>OPORTUNIDADE!</strong> 
-                            ${alert.match.home_team} vs ${alert.match.away_team} - 
-                            ${alert.market === 'over_25' ? 'Over 2.5' : 'Vitória da Casa'} 
-                            @ ${alert.odds.toFixed(2)} (EV: +${alert.ev.toFixed(1)}%)
-                        </div>
-                        <button class="btn btn-sm" 
-                                onclick="analyzeOpportunity('${alert.match.league}', '${alert.market}', ${alert.odds})">
-                            Analisar
-                        </button>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // Atualizar elementos de status
-        function updateStatusElements() {
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-            document.getElementById('todayMatches').textContent = dataStore.todayMatchesCount;
-            document.getElementById('liveOpportunities').textContent = dataStore.liveOpportunitiesCount;
-        }
-
-        // Função para analisar oportunidade
-        function analyzeOpportunity(league, market, odds) {
-            document.getElementById('leagueFilter').value = league;
-            document.getElementById('marketType').value = market;
-            document.getElementById('oddInput').value = odds;
-            calculateValue();
-            
-            // Rolar até a calculadora
-            document.querySelector('#valueResult').scrollIntoView({
-                behavior: 'smooth'
-            });
-        }
-
-        // Atualizar estatísticas do cabeçalho
-        function updateHeaderStats() {
-            document.getElementById('headerMatches').textContent = dataStore.matches.length;
-            
-            // Calcular lucro potencial (exemplo baseado em dados)
-            let profitPotential = 0;
-            if (dataStore.matches.length > 20) {
-                const avgGoals = dataStore.matches.reduce((sum, match) => sum + match.home_goals + match.away_goals, 0) / dataStore.matches.length;
-                const homeWinRate = dataStore.matches.filter(m => m.home_goals > m.away_goals).length / dataStore.matches.length;
-                profitPotential = Math.min(35, Math.floor((avgGoals + homeWinRate * 20) * 2));
-            }
-            document.getElementById('headerProfit').textContent = `${profitPotential}%`;
-            
-            // Calcular oportunidades (exemplo)
-            const opportunities = dataStore.matches.length > 30 ? Math.floor(dataStore.matches.length / 15) : 0;
-            document.getElementById('headerValue').textContent = opportunities;
-        }
-
-        // Carregar dados de demonstração
-        function loadDemoData() {
-            const demoMatches = [
-                {league: "Virtual Premier", home_goals: 2, away_goals: 1},
-                {league: "Virtual Premier", home_goals: 3, away_goals: 2},
-                {league: "Virtual Premier", home_goals: 1, away_goals: 1},
-                {league: "Virtual Premier", home_goals: 4, away_goals: 1},
-                {league: "Virtual Premier", home_goals: 2, away_goals: 0},
-                {league: "Virtual La Liga", home_goals: 4, away_goals: 0},
-                {league: "Virtual La Liga", home_goals: 2, away_goals: 3},
-                {league: "Virtual La Liga", home_goals: 1, away_goals: 1},
-                {league: "Virtual La Liga", home_goals: 3, away_goals: 2},
-                {league: "Brasil Virtual", home_goals: 0, away_goals: 0},
-                {league: "Brasil Virtual", home_goals: 1, away_goals: 2},
-                {league: "Brasil Virtual", home_goals: 3, away_goals: 1},
-                {league: "Brasil Virtual", home_goals: 2, away_goals: 2},
-                {league: "Euro Virtual", home_goals: 3, away_goals: 1},
-                {league: "Euro Virtual", home_goals: 1, away_goals: 0},
-                {league: "Euro Virtual", home_goals: 2, away_goals: 1},
-                {league: "Champions Virtual", home_goals: 3, away_goals: 3},
-                {league: "Champions Virtual", home_goals: 2, away_goals: 1},
-                {league: "Champions Virtual", home_goals: 4, away_goals: 2},
-                {league: "Premier Asia", home_goals: 1, away_goals: 0},
-                {league: "Premier Asia", home_goals: 2, away_goals: 1},
-                {league: "Premier Asia", home_goals: 0, away_goals: 0},
-                {league: "Copa Virtual", home_goals: 3, away_goals: 1},
-                {league: "Copa Virtual", home_goals: 2, away_goals: 2},
-                {league: "Copa Virtual", home_goals: 1, away_goals: 3},
-                {league: "Serie A Virtual", home_goals: 1, away_goals: 1},
-                {league: "Serie A Virtual", home_goals: 3, away_goals: 0},
-                {league: "Serie A Virtual", home_goals: 2, away_goals: 1},
-                {league: "Bundesliga Virtual", home_goals: 4, away_goals: 2},
-                {league: "Bundesliga Virtual", home_goals: 1, away_goals: 3},
-                {league: "Bundesliga Virtual", home_goals: 2, away_goals: 2}
-            ];
-            
-            dataStore.matches = demoMatches;
-            dataStore.saveData();
-            showNotification('Dados de demonstração carregados com sucesso!');
-        }
-
-        // Processar CSV
-        function parseCSV() {
-            const csv = document.getElementById('csvInput').value.trim();
-            if (!csv) {
-                showNotification('Por favor, insira dados CSV válidos', false);
-                return;
-            }
-            
-            const lines = csv.split('\n');
-            const matches = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const parts = line.split(',');
-                if (parts.length >= 3) {
-                    matches.push({
-                        league: parts[0].trim(),
-                        home_goals: parseInt(parts[1]),
-                        away_goals: parseInt(parts[2])
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 80,
+                        behavior: 'smooth'
                     });
                 }
-            }
-            
-            dataStore.matches = matches;
-            dataStore.saveData();
-            showNotification(`${matches.length} partidas importadas com sucesso!`);
-        }
-
-        // Adicionar dados manualmente
-        function addManualData() {
-            const league = document.getElementById('leagueInput').value.trim();
-            const home = parseInt(document.getElementById('homeInput').value);
-            const away = parseInt(document.getElementById('awayInput').value);
-            
-            if (!league || isNaN(home) || isNaN(away)) {
-                showNotification('Preencha todos os campos corretamente', false);
-                return;
-            }
-            
-            dataStore.addMatch({
-                league: league,
-                home_goals: home,
-                away_goals: away
             });
-            
-            // Limpar campos
-            document.getElementById('leagueInput').value = '';
-            document.getElementById('homeInput').value = '';
-            document.getElementById('awayInput').value = '';
-            
-            showNotification('Partida adicionada com sucesso!');
-        }
-
-        // Exportar CSV
-        function exportCSV() {
-            if (dataStore.matches.length === 0) {
-                showNotification('Nenhum dado para exportar', false);
-                return;
-            }
-            
-            let csv = 'league,home_goals,away_goals\n';
-            dataStore.matches.forEach(m => {
-                csv += `${m.league},${m.home_goals},${m.away_goals}\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'dados-futebol-virtual.csv';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // Limpar dados
-        function clearData() {
-            if (confirm('Tem certeza que deseja apagar todos os dados? Esta ação não pode ser desfeita.')) {
-                dataStore.clearData();
-                showNotification('Todos os dados foram apagados');
-            }
-        }
-
-        // Buscar dados da API
-        async function fetchApiData() {
-            const apiEndpoint = document.getElementById('apiEndpoint').value;
-            const resultsDiv = document.getElementById('apiResults');
-            const button = document.getElementById('fetchApiBtn');
-            
-            if (!apiEndpoint) {
-                showNotification('Insira um endpoint de API válido', false);
-                return;
-            }
-            
-            try {
-                // Mostrar estado de carregamento
-                button.classList.add('loading');
-                button.disabled = true;
-                
-                resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Buscando dados da API...</p>';
-                
-                // Chamada à API
-                const response = await axios.get(apiEndpoint, {
-                    headers: {
-                        'x-apisports-key': API_CONFIG.API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: API_CONFIG.TIMEOUT
-                });
-                
-                // Processar resultados
-                let html = `<p style="color: #4cc9f0; text-align: center; margin-bottom: 15px;">
-                    <i class="fas fa-check-circle"></i> <strong>${response.data.response.length} partidas encontradas!</strong>
-                </p>
-                <div class="scrape-results-list" style="max-height: 250px; overflow-y: auto;">`;
-                
-                response.data.response.slice(0, 10).forEach(match => {
-                    html += `
-                    <div class="match-item">
-                        <div class="match-info">
-                            <div class="match-league">${match.league.name}</div>
-                            <div class="match-teams">
-                                <span>${match.teams.home.name}</span>
-                                <span class="match-score">${match.goals.home}-${match.goals.away}</span>
-                                <span>${match.teams.away.name}</span>
-                            </div>
-                        </div>
-                    </div>`;
-                });
-                
-                if (response.data.response.length > 10) {
-                    html += `<p style="text-align: center; margin: 15px 0; color: #8d99ae;">
-                        ... +${response.data.response.length - 10} partidas
-                    </p>`;
-                }
-                
-                html += `</div>`;
-                
-                resultsDiv.innerHTML = html;
-                showNotification('Dados da API importados com sucesso!');
-            } catch (error) {
-                resultsDiv.innerHTML = `<p style="text-align: center; color: #f72585; padding: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i> Erro: ${error.message || 'Falha ao buscar dados da API'}
-                </p>`;
-            } finally {
-                button.classList.remove('loading');
-                button.disabled = false;
-            }
-        }
-
-        // Encontrar oportunidades
-        function findOpportunities(marketType) {
-            const resultsDiv = document.getElementById('opportunityResults');
-            resultsDiv.innerHTML = '<p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Analisando oportunidades...</p>';
-            
-            // Gerar oportunidades fictícias (em sistema real, analisaria dados reais)
-            setTimeout(() => {
-                const opportunities = [];
-                const leagues = [...new Set(dataStore.matches.map(m => m.league))];
-                
-                leagues.forEach(league => {
-                    // Filtrar partidas da liga
-                    const leagueMatches = dataStore.matches.filter(m => m.league === league);
-                    if (leagueMatches.length < 5) return;
-                    
-                    // Criar 1-3 oportunidades por liga
-                    const oppCount = 1 + Math.floor(Math.random() * 2);
-                    for (let i = 0; i < oppCount; i++) {
-                        const match = leagueMatches[Math.floor(Math.random() * leagueMatches.length)];
-                        const odds = 1.80 + (Math.random() * 1.20); // Odds entre 1.80 e 3.00
-                        const ev = 5 + (Math.random() * 15); // EV entre 5% e 20%
-                        
-                        opportunities.push({
-                            league,
-                            market: marketType,
-                            odds: odds.toFixed(2),
-                            ev: ev.toFixed(1),
-                            probability: (Math.random() * 30 + 50).toFixed(1) // Prob entre 50-80%
-                        });
-                    }
-                });
-                
-                // Ordenar por maior EV
-                opportunities.sort((a, b) => b.ev - a.ev);
-                
-                // Exibir resultados
-                if (opportunities.length === 0) {
-                    resultsDiv.innerHTML = '<p style="text-align: center; padding: 30px; color: #f72585;">Nenhuma oportunidade encontrada. Tente outros filtros.</p>';
-                    return;
-                }
-                
-                let html = `<div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding: 0 10px;">
-                    <span>${opportunities.length} oportunidades encontradas</span>
-                    <span>Ordenado por: <strong>Maior Valor</strong></span>
-                </div>`;
-                
-                opportunities.forEach(opp => {
-                    const marketNames = {
-                        'over_0.5_ht': 'Over 0.5 HT',
-                        'both_score_ht': 'Ambas Marcam HT',
-                        'home_win_ht': 'Vitória da Casa 1T',
-                        'over_1.5': 'Over 1.5 Gols',
-                        'over_3.5': 'Over 3.5 Gols',
-                        'both_teams_score': 'Ambas Marcam (GG)',
-                        'home_and_over1.5': 'Casa & Over 1.5',
-                        'btts_over2.5': 'GG + Over 2.5',
-                        'exact_score': 'Resultado Exato'
-                    };
-                    
-                    html += `
-                    <div class="opportunity-item">
-                        <div class="opportunity-header">
-                            <div>
-                                <span class="opportunity-market">${marketNames[opp.market]}</span>
-                                <span>• ${opp.league}</span>
-                            </div>
-                            <div class="opportunity-ev">EV: +${opp.ev}%</div>
-                        </div>
-                        
-                        <div class="opportunity-details">
-                            <div><i class="fas fa-percentage"></i> Probabilidade: <strong>${opp.probability}%</strong></div>
-                            <div><i class="fas fa-coins"></i> Odd Recomendada: <strong>${opp.odds}</strong></div>
-                            <div><i class="fas fa-chart-line"></i> Potencial Lucro: <strong>${(opp.ev * 1.5).toFixed(1)}%</strong></div>
-                            <div><i class="fas fa-shield-alt"></i> Risco: <strong style="color: #4cc9f0">Baixo</strong></div>
-                        </div>
-                        
-                        <div class="opportunity-actions">
-                            <button class="btn" style="padding: 8px 15px; font-size: 0.9rem;"
-                                onclick="analyzeOpportunity('${opp.league}', '${opp.market}', ${opp.odds})">
-                                <i class="fas fa-calculator"></i> Analisar
-                            </button>
-                            <button class="btn btn-outline" style="padding: 8px 15px; font-size: 0.9rem;">
-                                <i class="fas fa-star"></i> Salvar
-                            </button>
-                        </div>
-                    </div>`;
-                });
-                
-                resultsDiv.innerHTML = html;
-                
-            }, 1500); // Simular tempo de processamento
-        }
-
-        // ==================== [INICIALIZAÇÃO] ====================
-        document.addEventListener('DOMContentLoaded', init);
+        });
     </script>
 </body>
 </html>
